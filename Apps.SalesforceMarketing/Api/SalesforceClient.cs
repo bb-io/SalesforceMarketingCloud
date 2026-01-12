@@ -1,4 +1,5 @@
 using Apps.SalesforceMarketing.Constants;
+using Apps.SalesforceMarketing.Models.Error;
 using Apps.SalesforceMarketing.Models.Response;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Exceptions;
@@ -96,9 +97,13 @@ public class SalesforceClient : BlackBirdRestClient
 
     protected override Exception ConfigureErrorException(RestResponse response)
     {
-        var error = JsonConvert.DeserializeObject(response.Content);
-        var errorMessage = "";
+        if (response.Content == null)
+            throw new PluginApplicationException("Error - no content received from the server");
 
-        throw new PluginApplicationException(errorMessage);
+        var error = JsonConvert.DeserializeObject<ErrorResponse>(response.Content);
+        if (error == null || error.Message == null)
+            throw new PluginApplicationException("Error - could not deserialize an error message");
+
+        throw new PluginApplicationException(error.Message);
     }
 }

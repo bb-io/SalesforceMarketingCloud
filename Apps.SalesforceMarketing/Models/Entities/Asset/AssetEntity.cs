@@ -36,4 +36,7 @@ public class AssetEntity
 
     [JsonProperty("status")]
     public AssetStatus Status { get; set; }
+
+    [JsonProperty("views")]
+    public AssetViews Views { get; set; }
 }

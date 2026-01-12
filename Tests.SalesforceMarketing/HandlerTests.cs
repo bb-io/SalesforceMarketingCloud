@@ -7,19 +7,21 @@ namespace Tests.SalesforceMarketing;
 [TestClass]
 public class HandlerTests : TestBase
 {
+    private readonly DataSourceContext _emptyDataSourceContext = new() { };
+
     [TestMethod]
-    public async Task Dynamic_handler_works()
+    public async Task AssetDataHandler_ReturnsAssets()
     {
-        var handler = new DynamicHandler(InvocationContext);
+        // Arrange
+        var handler = new AssetDataHandler(InvocationContext);
 
-        var result = await handler.GetDataAsync(new DataSourceContext { }, CancellationToken.None);
+        // Act
+        var result = await handler.GetDataAsync(_emptyDataSourceContext, CancellationToken.None);
 
+        // Assert
         Console.WriteLine($"Total: {result.Count()}");
         foreach (var item in result)
-        {
             Console.WriteLine($"{item.Value}: {item.DisplayName}");
-        }
-
-        Assert.IsTrue(result.Count() > 0);
+        Assert.IsNotEmpty(result);
     }
 }

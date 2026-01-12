@@ -1,5 +1,6 @@
 using Apps.SalesforceMarketing.Helpers;
 using Apps.SalesforceMarketing.Models.Entities.Asset;
+using Apps.SalesforceMarketing.Models.Identifiers;
 using Apps.SalesforceMarketing.Models.Request;
 using Apps.SalesforceMarketing.Models.Response.Content;
 using Blackbird.Applications.Sdk.Common;
@@ -13,12 +14,33 @@ namespace Apps.SalesforceMarketing.Actions;
 [ActionList("Content")]
 public class ContentActions(InvocationContext invocationContext) : SalesforceInvocable(invocationContext)
 {
-    [Action("Search content", Description = "Search content with specific criteria")]
+    [Action("Search content", Description = "Search content (emails and content blocks) with specific criteria")]
     public async Task<SearchContentResponse> SearchContent([ActionParameter] SearchContentRequest input)
     {
         input.Validate();
 
-        var conditions = new List<JObject>();
+        var conditions = new List<JObject>()
+        {
+            new() {
+                ["property"] = "assetType.name",
+                ["simpleOperator"] = "in",
+                ["value"] = new JArray
+                { 
+                    // Emails
+                    "htmlemail",
+                    "templatebasedemail",
+                    "textonlyemail",                
+                    // Content blocks
+                    "textblock",
+                    "imageblock",
+                    "freeformblock",
+                    "htmlblock",
+                    "buttonblock",
+                    "socialfollowblock",
+                    "socialshareblock"
+                }
+            }
+        };
 
         if (input.CreatedFromDate.HasValue)
         {
@@ -72,5 +94,13 @@ public class ContentActions(InvocationContext invocationContext) : SalesforceInv
 
         var wrappedItems = entities.Select(x => new GetContentResponse(x)).ToArray();
         return new SearchContentResponse(wrappedItems);
+    }
+
+    [Action("Get email details", Description = "")]
+    public async Task<GetEmailDetailsResponse> GetEmailDetails([ActionParameter] AssetIdentifier assetId)
+    {
+        var request = new RestRequest($"asset/v1/content/assets/{assetId.AssetId}", Method.Get);
+        var entity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
+        return new(entity);
     }
 }

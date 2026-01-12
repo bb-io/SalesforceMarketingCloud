@@ -1,6 +1,7 @@
 ﻿using Tests.SalesforceMarketing.Base;
 using Apps.SalesforceMarketing.Actions;
 using Apps.SalesforceMarketing.Models.Request;
+using Apps.SalesforceMarketing.Models.Identifiers;
 
 namespace Tests.SalesforceMarketing;
 
@@ -8,7 +9,7 @@ namespace Tests.SalesforceMarketing;
 public class ContentActionTests : TestBase
 {
     [TestMethod]
-    public async Task SearchContent_IsSuccess()
+    public async Task SearchContent_ReturnsAssets()
     {
         // Arrange
         var actions = new ContentActions(InvocationContext);
@@ -25,5 +26,20 @@ public class ContentActionTests : TestBase
         Console.WriteLine($"Count: {result.Items.Length}");
         PrintResult(result);
         Assert.IsNotEmpty(result.Items);
+    }
+
+    [TestMethod]
+    public async Task GetEmailDetails_ReturnsEmailMetadata()
+    {
+        // Arrange
+        var actions = new ContentActions(InvocationContext);
+        var assetId = new AssetIdentifier { AssetId = "692794" };
+
+        // Act
+        var result = await actions.GetEmailDetails(assetId);
+
+        // Assert
+        PrintResult(result);
+        Assert.IsNotNull(result);
     }
 }
