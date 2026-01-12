@@ -1,7 +1,7 @@
-﻿using Apps.Appname.Actions;
-using Tests.Appname.Base;
+﻿using Apps.SalesforceMarketing.Actions;
+using Tests.SalesforceMarketing.Base;
 
-namespace Tests.Appname;
+namespace Tests.AppSalesforceMarketingname;
 
 [TestClass]
 public class ActionTests : TestBase

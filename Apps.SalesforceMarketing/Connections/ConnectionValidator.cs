@@ -1,9 +1,9 @@
-﻿using Apps.Appname.Api;
-using Blackbird.Applications.Sdk.Common.Authentication;
+﻿using RestSharp;
+using Apps.SalesforceMarketing.Api;
 using Blackbird.Applications.Sdk.Common.Connections;
-using RestSharp;
+using Blackbird.Applications.Sdk.Common.Authentication;
 
-namespace Apps.Appname.Connections;
+namespace Apps.SalesforceMarketing.Connections;
 
 public class ConnectionValidator: IConnectionValidator
 {
@@ -13,14 +13,12 @@ public class ConnectionValidator: IConnectionValidator
     {
         try
         {
-            var client = new Client(authenticationCredentialsProviders);
+            var client = new SalesforceClient(authenticationCredentialsProviders);
+            var request = new RestRequest("platform/v1/tokenContext", Method.Get);
 
-            await client.ExecuteWithErrorHandling(new RestRequest());
+            await client.ExecuteWithErrorHandling(request);
 
-            return new()
-            {
-                IsValid = true
-            };
+            return new() { IsValid = true };
         } catch(Exception ex)
         {
             return new()

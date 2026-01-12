@@ -4,15 +4,15 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Product>Appname</Product>
+        <Product>Salesforce Marketing Cloud</Product>
         <Description>Description</Description>
         <Version>1.0.0</Version>
-        <AssemblyName>Apps.Appname</AssemblyName>
+        <AssemblyName>Apps.SalesforceMarketing</AssemblyName>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Blackbird.Applications.Sdk.Common" Version="2.11.0" />
-        <PackageReference Include="Blackbird.Applications.Sdk.Utils" Version="1.0.25" />
+        <PackageReference Include="Blackbird.Applications.Sdk.Common" Version="2.14.0" />
+        <PackageReference Include="Blackbird.Applications.Sdk.Utils" Version="1.1.0-rc.8709" />
     </ItemGroup>
 
     <ItemGroup>

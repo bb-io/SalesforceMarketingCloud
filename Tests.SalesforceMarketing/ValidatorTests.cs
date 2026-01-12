@@ -1,8 +1,8 @@
-using Apps.Appname.Connections;
+using Tests.SalesforceMarketing.Base;
+using Apps.SalesforceMarketing.Connections;
 using Blackbird.Applications.Sdk.Common.Authentication;
-using Tests.Appname.Base;
 
-namespace Tests.Appname;
+namespace Tests.SalesforceMarketing;
 
 [TestClass]
 public class ConnectionValidatorTests : TestBase

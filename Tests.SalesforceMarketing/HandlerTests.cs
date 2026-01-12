@@ -1,8 +1,8 @@
-﻿using Apps.Appname.Handlers;
+﻿using Apps.SalesforceMarketing.Handlers;
 using Blackbird.Applications.Sdk.Common.Dynamic;
-using Tests.Appname.Base;
+using Tests.SalesforceMarketing.Base;
 
-namespace Tests.Appname;
+namespace Tests.SalesforceMarketing;
 
 [TestClass]
 public class HandlerTests : TestBase

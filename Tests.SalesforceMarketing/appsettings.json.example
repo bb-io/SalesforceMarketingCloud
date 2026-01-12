@@ -1,0 +1,9 @@
+{
+  "ConnectionDefinition": {
+    "subdomain": "",
+    "client_id": "",
+    "client_secret": "",
+    "account_id": ""
+  },
+  "TestFolder": "TestFiles"
+}

@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.1.11312.151 d18.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Apps.SalesforceMarketing", "Apps.SalesforceMarketing\Apps.SalesforceMarketing.csproj", "{01E76F50-8C5F-88CD-1583-91F58E0490AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.SalesforceMarketing", "Tests.SalesforceMarketing\Tests.SalesforceMarketing.csproj", "{D086AD6F-D8FB-4429-CFB7-138AA29D6EB4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{01E76F50-8C5F-88CD-1583-91F58E0490AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01E76F50-8C5F-88CD-1583-91F58E0490AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01E76F50-8C5F-88CD-1583-91F58E0490AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01E76F50-8C5F-88CD-1583-91F58E0490AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D086AD6F-D8FB-4429-CFB7-138AA29D6EB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D086AD6F-D8FB-4429-CFB7-138AA29D6EB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D086AD6F-D8FB-4429-CFB7-138AA29D6EB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D086AD6F-D8FB-4429-CFB7-138AA29D6EB4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {390DA2CC-8DD0-4BC4-A1F7-C82802FB6BA5}
+	EndGlobalSection
+EndGlobal
