@@ -1,11 +1,12 @@
-using RestSharp;
-using Newtonsoft.Json;
 using Apps.SalesforceMarketing.Constants;
 using Apps.SalesforceMarketing.Models.Response;
-using Blackbird.Applications.Sdk.Utils.RestSharp;
-using Blackbird.Applications.Sdk.Utils.Extensions.Sdk;
-using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Authentication;
+using Blackbird.Applications.Sdk.Common.Exceptions;
+using Blackbird.Applications.Sdk.Utils.Extensions.Sdk;
+using Blackbird.Applications.Sdk.Utils.RestSharp;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using RestSharp;
 
 namespace Apps.SalesforceMarketing.Api;
 
@@ -18,6 +19,55 @@ public class SalesforceClient : BlackBirdRestClient
     {
         string token = GetAccessToken(creds).GetAwaiter().GetResult();
         this.AddDefaultHeader("Authorization", $"Bearer {token}");
+    }
+
+    public async Task<List<T>> PaginatePost<T>(RestRequest request)
+    {
+        var allItems = new List<T>();
+
+        var bodyParam = request.Parameters.FirstOrDefault(p => p.Type == ParameterType.RequestBody);
+        JObject jsonBody;
+
+        if (bodyParam != null && bodyParam.Value != null)
+        {
+            jsonBody = bodyParam.Value is string s
+                ? JObject.Parse(s)
+                : JObject.FromObject(bodyParam.Value);
+        }
+        else
+            jsonBody = new JObject();
+
+        int page = 1;
+        int pageSize = 50;
+
+        if (jsonBody["page"] == null)
+            jsonBody["page"] = new JObject{ ["pageSize"] = pageSize };
+
+        while (true)
+        {
+            jsonBody["page"]!["page"] = page;
+
+            var currentParam = request.Parameters.FirstOrDefault(p => p.Type == ParameterType.RequestBody);
+            if (currentParam != null)
+                request.RemoveParameter(currentParam);
+
+            request.AddStringBody(jsonBody.ToString(), DataFormat.Json);
+
+            var response = await ExecuteWithErrorHandling<JObject>(request);
+            var items = response["items"]?.ToObject<List<T>>();
+
+            if (items == null || items.Count == 0) 
+                break;
+
+            allItems.AddRange(items);
+
+            if (items.Count < pageSize) 
+                break;
+
+            page++;
+        }
+
+        return allItems;
     }
 
     private static async Task<string> GetAccessToken(IEnumerable<AuthenticationCredentialsProvider> creds)
