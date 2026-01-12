@@ -4,8 +4,8 @@ using Blackbird.Applications.Sdk.Common.Dynamic;
 
 namespace Apps.SalesforceMarketing.Models.Identifiers;
 
-public class AssetIdentifier
+public class EmailIdentifier
 {
-    [Display("Asset ID"), DataSource(typeof(AssetDataHandler))]
-    public string AssetId { get; set; }
+    [Display("Email ID"), DataSource(typeof(EmailDataHandler))]
+    public string EmailId { get; set; }
 }

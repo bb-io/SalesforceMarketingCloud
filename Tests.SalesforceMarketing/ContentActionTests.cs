@@ -1,7 +1,7 @@
 ﻿using Tests.SalesforceMarketing.Base;
 using Apps.SalesforceMarketing.Actions;
-using Apps.SalesforceMarketing.Models.Request;
 using Apps.SalesforceMarketing.Models.Identifiers;
+using Apps.SalesforceMarketing.Models.Request.Content;
 
 namespace Tests.SalesforceMarketing;
 
@@ -33,10 +33,30 @@ public class ContentActionTests : TestBase
     {
         // Arrange
         var actions = new ContentActions(InvocationContext);
-        var assetId = new AssetIdentifier { AssetId = "692794" };
+        var assetId = new EmailIdentifier { EmailId = "670941" };
 
         // Act
         var result = await actions.GetEmailDetails(assetId);
+
+        // Assert
+        PrintResult(result);
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
+    public async Task CreateContentBlock_ReturnsCreatedContentBlock()
+    {
+        // Arrange
+        var actions = new ContentActions(InvocationContext);
+        var request = new CreateContentBlockRequest
+        {
+            Content = "test content freeform",
+            AssetTypeId = "195",
+            Name = "Test freeform content block from the tests"
+        };
+
+        // Act
+        var result = await actions.CreateContentBlock(request);
 
         // Assert
         PrintResult(result);

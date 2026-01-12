@@ -1,7 +1,7 @@
 ﻿using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 
-namespace Apps.SalesforceMarketing.Models.Request;
+namespace Apps.SalesforceMarketing.Models.Request.Content;
 
 public class SearchContentRequest
 {

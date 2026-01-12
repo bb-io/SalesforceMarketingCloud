@@ -1,7 +1,7 @@
 using Apps.SalesforceMarketing.Helpers;
 using Apps.SalesforceMarketing.Models.Entities.Asset;
 using Apps.SalesforceMarketing.Models.Identifiers;
-using Apps.SalesforceMarketing.Models.Request;
+using Apps.SalesforceMarketing.Models.Request.Content;
 using Apps.SalesforceMarketing.Models.Response.Content;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
@@ -96,11 +96,31 @@ public class ContentActions(InvocationContext invocationContext) : SalesforceInv
         return new SearchContentResponse(wrappedItems);
     }
 
-    [Action("Get email details", Description = "")]
-    public async Task<GetEmailDetailsResponse> GetEmailDetails([ActionParameter] AssetIdentifier assetId)
+    [Action("Get email details", Description = "Get details of a specific email")]
+    public async Task<GetEmailDetailsResponse> GetEmailDetails([ActionParameter] EmailIdentifier emailId)
     {
-        var request = new RestRequest($"asset/v1/content/assets/{assetId.AssetId}", Method.Get);
+        var request = new RestRequest($"asset/v1/content/assets/{emailId.EmailId}", Method.Get);
         var entity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
         return new(entity);
+    }
+
+    [Action("Create content block", Description = "")]
+    public async Task<GetContentResponse> CreateContentBlock([ActionParameter] CreateContentBlockRequest input)
+    {
+        var request = new RestRequest("asset/v1/content/assets", Method.Post);
+        var body = new
+        {
+            name = input.Name,
+            assetType = new
+            {
+                id = int.Parse(input.AssetTypeId),
+            },
+            content = input.Content,
+        };
+
+        request.AddJsonBody(body);
+
+        var createdEntity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
+        return new(createdEntity);
     }
 }

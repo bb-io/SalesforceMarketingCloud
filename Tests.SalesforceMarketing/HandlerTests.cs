@@ -10,10 +10,10 @@ public class HandlerTests : TestBase
     private readonly DataSourceContext _emptyDataSourceContext = new() { };
 
     [TestMethod]
-    public async Task AssetDataHandler_ReturnsAssets()
+    public async Task EmailDataHandler_ReturnsEmails()
     {
         // Arrange
-        var handler = new AssetDataHandler(InvocationContext);
+        var handler = new EmailDataHandler(InvocationContext);
 
         // Act
         var result = await handler.GetDataAsync(_emptyDataSourceContext, CancellationToken.None);

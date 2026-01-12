@@ -18,7 +18,7 @@ public class GetContentResponse(AssetEntity assetEntity)
     public string Name { get; set; } = assetEntity.Name;
 
     [Display("Description")]
-    public string Description { get; set; } = assetEntity.Description;
+    public string? Description { get; set; } = string.IsNullOrEmpty(assetEntity.Description) ? null : assetEntity.Description;
 
     [Display("Owner")]
     public string Owner { get; set; } = assetEntity.Owner.Name;
