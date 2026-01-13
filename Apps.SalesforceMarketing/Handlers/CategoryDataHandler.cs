@@ -39,7 +39,7 @@ public class CategoryDataHandler(InvocationContext invocationContext)
             i++;
             await WebhookLogger.Log($"run {i}");
             await WebhookLogger.Log(category);
-            var folder = new Folder
+            var folder = new Folder()
             {
                 Id = category.Id.ToString(),
                 DisplayName = category.Name,
