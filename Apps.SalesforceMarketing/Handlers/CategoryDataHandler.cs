@@ -27,12 +27,19 @@ public class CategoryDataHandler(InvocationContext invocationContext)
         request.AddQueryParameter("$pageSize", "50");
 
         var response = await Client.ExecuteWithErrorHandling<ItemsWrapper<CategoryEntity>>(request);
-        return response.Items.Select(x => new Folder
+        var folders = new List<Folder>();
+
+        foreach (var category in response.Items)
         {
-            Id = x.Id.ToString(),
-            DisplayName = x.Name,
-            IsSelectable = true
-        });
+            var folder = new Folder
+            {
+                Id = category.Id.ToString(),
+                DisplayName = category.Name,
+                IsSelectable = true
+            };
+            folders.Add(folder);
+        }
+        return folders;
     }
 
     public async Task<IEnumerable<FolderPathItem>> GetFolderPathAsync(FolderPathDataSourceContext context, CancellationToken ct)
