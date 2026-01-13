@@ -31,7 +31,7 @@ public class CategoryDataHandler(InvocationContext invocationContext)
 
         var response = await Client.ExecuteWithErrorHandling<ItemsWrapper<CategoryEntity>>(request);
         await WebhookLogger.Log(response);
-        var folders = new List<Folder>();
+        var folders = new List<FileDataItem>();
         int i = 0;
 
         foreach (var category in response.Items)
