@@ -71,6 +71,40 @@ public class SalesforceClient : BlackBirdRestClient
         return allItems;
     }
 
+    public async Task<List<T>> PaginateGet<T>(RestRequest request)
+    {
+        var allItems = new List<T>();
+        int page = 1;
+        int pageSize = 50;
+
+        while (true)
+        {
+            var pageParam = request.Parameters.FirstOrDefault(p => p.Name == "$page");
+            if (pageParam != null) request.RemoveParameter(pageParam);
+
+            var sizeParam = request.Parameters.FirstOrDefault(p => p.Name == "$pageSize");
+            if (sizeParam != null) request.RemoveParameter(sizeParam);
+
+            request.AddQueryParameter("$page", page.ToString());
+            request.AddQueryParameter("$pageSize", pageSize.ToString());
+
+            var response = await ExecuteWithErrorHandling<JObject>(request);
+
+            var items = response["items"]?.ToObject<List<T>>();
+            if (items == null || items.Count == 0)
+                break;
+
+            allItems.AddRange(items);
+
+            if (items.Count < pageSize)
+                break;
+
+            page++;
+        }
+
+        return allItems;
+    }
+
     private static async Task<string> GetAccessToken(IEnumerable<AuthenticationCredentialsProvider> creds)
     {
         string subdomain = creds.Get(CredsNames.Subdomain).Value;

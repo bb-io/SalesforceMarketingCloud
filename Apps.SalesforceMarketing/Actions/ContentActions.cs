@@ -1,3 +1,4 @@
+using Apps.SalesforceMarketing.Constants;
 using Apps.SalesforceMarketing.Helpers;
 using Apps.SalesforceMarketing.Models.Entities.Asset;
 using Apps.SalesforceMarketing.Models.Identifiers;
@@ -5,6 +6,7 @@ using Apps.SalesforceMarketing.Models.Request.Content;
 using Apps.SalesforceMarketing.Models.Response.Content;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Newtonsoft.Json.Linq;
@@ -151,7 +153,12 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         var request = new RestRequest($"asset/v1/content/assets/{emailId.EmailId}", Method.Get);
         var entity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
 
-        var htmlContent = entity.Views.Html.Content;
+        string htmlContent = entity.Views.Html.Content;
+
+        string subjectLine = entity.Views.SubjectLine.Content ?? "";
+        if (!string.IsNullOrEmpty(subjectLine))
+            htmlContent = HtmlHelper.InjectDivMetadata(htmlContent, subjectLine, BlackbirdMetadataIds.SubjectLine);
+
         using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(htmlContent));
         var file = await fileManagementClient.UploadAsync(stream, "application/html", $"{entity.Name}.html");
 
@@ -162,6 +169,16 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
     public async Task<GetContentResponse> UploadEmail([ActionParameter] UploadEmailRequest input)
     {
         string html = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
+
+        var (UpdatedHtml, ExtractedSubject) = HtmlHelper.ExtractAndDeleteDivMetadata(html, BlackbirdMetadataIds.SubjectLine);
+        var cleanHtml = UpdatedHtml;
+        string subject = 
+            input.SubjectLine ?? 
+            ExtractedSubject ?? 
+            throw new PluginMisconfigurationException(
+                "Email subject is not found in the input file. Provide it in the input or include it in the file"
+            );
+
         string emailName = string.IsNullOrEmpty(input.EmailName) ? input.Content.Name : input.EmailName;
 
         var request = new RestRequest("asset/v1/content/assets", Method.Post);
@@ -174,9 +191,10 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             },
             views = new
             {
-                html = new { content = html },
-                subjectline = new { content = input.SubjectLine }
+                html = new { content = cleanHtml },
+                subjectline = new { content = subject }
             },
+            category = !string.IsNullOrEmpty(input.CategoryId) ? new { id = int.Parse(input.CategoryId) } : null
         };
         request.AddJsonBody(body);
 

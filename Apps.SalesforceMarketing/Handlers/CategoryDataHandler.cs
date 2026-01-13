@@ -1,5 +1,4 @@
 ﻿using RestSharp;
-using Apps.SalesforceMarketing.Models;
 using Apps.SalesforceMarketing.Models.Entities.Category;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
@@ -12,7 +11,6 @@ public class CategoryDataHandler(InvocationContext invocationContext)
 {
     public async Task<IEnumerable<FileDataItem>> GetFolderContentAsync(FolderContentDataSourceContext context, CancellationToken ct)
     {
-        await WebhookLogger.Log(context);
         var request = new RestRequest("asset/v1/content/categories", Method.Get);
         var filters = new List<string>();
 
@@ -24,31 +22,19 @@ public class CategoryDataHandler(InvocationContext invocationContext)
         if (filters.Count != 0)
             request.AddQueryParameter("$filter", string.Join(" AND ", filters));
 
-        request.AddQueryParameter("$page", "1");
-        request.AddQueryParameter("$pageSize", "50");
-        await WebhookLogger.Log(filters);
-        await WebhookLogger.Log(request);
-
-        var response = await Client.ExecuteWithErrorHandling<ItemsWrapper<CategoryEntity>>(request);
-        await WebhookLogger.Log(response);
+        var response = await Client.PaginateGet<CategoryEntity>(request);
         var folders = new List<FileDataItem>();
-        int i = 0;
 
-        foreach (var category in response.Items)
+        foreach (var category in response)
         {
-            i++;
-            await WebhookLogger.Log($"run {i}");
-            await WebhookLogger.Log(category);
-            var folder = new Folder()
+            var folder = new Folder
             {
                 Id = category.Id.ToString(),
                 DisplayName = category.Name,
                 IsSelectable = true
             };
             folders.Add(folder);
-            await WebhookLogger.Log(folders);
         }
-        await WebhookLogger.Log(folders);
         return folders;
     }
 

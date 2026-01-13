@@ -16,7 +16,7 @@ public class ContentActionTests : TestBase
         var actions = new ContentActions(InvocationContext, FileManager);
         var input = new SearchContentRequest
         {
-            CreatedToDate = new DateTime(2025, 10, 06),
+            CreatedFromDate = new DateTime(2026, 1, 13),
         };
 
         // Act
@@ -68,7 +68,7 @@ public class ContentActionTests : TestBase
     {
         // Arrange
         var actions = new ContentActions(InvocationContext, FileManager);
-        var emailId = new EmailIdentifier { EmailId = "707398" };
+        var emailId = new EmailIdentifier { EmailId = "930504" };
 
         // Act
         var result = await actions.DownloadEmail(emailId);
@@ -85,8 +85,8 @@ public class ContentActionTests : TestBase
         var request = new UploadEmailRequest
         {
             Content = new FileReference { Name = "test.html" },
-            SubjectLine = "test subject from tests",
-            EmailName = "test name 123"
+            //SubjectLine = "test subject from tests",
+            EmailName = "test name 456"
         };
 
         // Act

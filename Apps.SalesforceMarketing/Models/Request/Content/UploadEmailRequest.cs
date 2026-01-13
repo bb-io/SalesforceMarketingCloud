@@ -11,7 +11,7 @@ public class UploadEmailRequest
     public FileReference Content { get; set; }
 
     [Display("Subject line")]
-    public string SubjectLine { get; set; }
+    public string? SubjectLine { get; set; }
 
     [Display("Category ID"), FileDataSource(typeof(CategoryDataHandler))]
     public string? CategoryId { get; set; }

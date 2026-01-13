@@ -34,7 +34,7 @@ public class CreateContentBlockRequest
         if (!string.IsNullOrEmpty(TextContent) && FileContent != null)
             throw new PluginMisconfigurationException("Only one type of content should be specified, either Text or File");
 
-        if (FileContent != null && AssetTypeId != AssetTypeIds.HtmlBlock)
-            throw new PluginMisconfigurationException("File content upload is supported with HTML blocks only");
+        if (FileContent != null && AssetTypeId != AssetTypeIds.HtmlBlock && AssetTypeId != AssetTypeIds.FreeformBlock)
+            throw new PluginMisconfigurationException("File content upload is supported for HTML or Freeform blocks only");
     }
 }
