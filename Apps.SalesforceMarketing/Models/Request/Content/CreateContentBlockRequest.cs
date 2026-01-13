@@ -3,9 +3,9 @@ using Apps.SalesforceMarketing.Handlers;
 using Apps.SalesforceMarketing.Handlers.Static;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dictionaries;
-using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Files;
+using Blackbird.Applications.SDK.Extensions.FileManagement.Models.FileDataSourceItems;
 
 namespace Apps.SalesforceMarketing.Models.Request.Content;
 
@@ -23,7 +23,7 @@ public class CreateContentBlockRequest
     [Display("File content")]
     public FileReference? FileContent { get; set; }
 
-    [Display("Category ID"), DataSource(typeof(CategoryDataHandler))]
+    [Display("Category ID"), FileDataSource(typeof(CategoryDataHandler))]
     public string? CategoryId { get; set; }
 
     public void Validate()
