@@ -1,5 +1,6 @@
 ﻿using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Dictionaries;
+using Apps.SalesforceMarketing.Constants;
 
 namespace Apps.SalesforceMarketing.Handlers.Static;
 
@@ -9,9 +10,9 @@ public class ContentBlockTypeDataHandler : IStaticDataSourceItemHandler
     {
         return 
         [
-            new DataSourceItem("196", "Text block"),
-            new DataSourceItem("197", "HTML block"),
-            new DataSourceItem("195", "Freeform block")
+            new DataSourceItem(AssetTypeIds.FreeformBlock, "Freeform block"),
+            new DataSourceItem(AssetTypeIds.TextBlock, "Text block"),
+            new DataSourceItem(AssetTypeIds.HtmlBlock, "HTML block")
         ];
     }
 }

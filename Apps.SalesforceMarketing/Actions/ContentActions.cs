@@ -5,15 +5,10 @@ using Apps.SalesforceMarketing.Models.Request.Content;
 using Apps.SalesforceMarketing.Models.Response.Content;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
-using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
-using Blackbird.Filters.Transformations;
-using Blackbird.Filters.Xliff.Xliff2;
 using Newtonsoft.Json.Linq;
 using RestSharp;
-using System.Text;
 
 namespace Apps.SalesforceMarketing.Actions;
 
@@ -124,6 +119,14 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
     [Action("Create content block", Description = "Create a new content block")]
     public async Task<GetContentResponse> CreateContentBlock([ActionParameter] CreateContentBlockRequest input)
     {
+        input.Validate();
+
+        string finalContent;
+        if (input.FileContent != null)
+            finalContent = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.FileContent);
+        else
+            finalContent = input.TextContent!;
+
         var request = new RestRequest("asset/v1/content/assets", Method.Post);
         var body = new
         {
@@ -132,7 +135,8 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             {
                 id = int.Parse(input.AssetTypeId),
             },
-            content = input.Content,
+            content = finalContent,
+            category = !string.IsNullOrEmpty(input.CategoryId) ? new { id = int.Parse(input.CategoryId) } : null
         };
 
         request.AddJsonBody(body);
@@ -157,15 +161,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
     [Action("Upload email", Description = "Create new email from file")]
     public async Task<GetContentResponse> UploadEmail([ActionParameter] UploadEmailRequest input)
     {
-        var file = await fileManagementClient.DownloadAsync(input.Content);
-        var html = Encoding.UTF8.GetString(await file.GetByteData());
-
-        if (Xliff2Serializer.IsXliff2(html))
-        {
-            html = Transformation.Parse(html, $"{input.Content.Name}.xlf").Target().Serialize() ?? 
-                throw new PluginMisconfigurationException("XLIFF did not contain files");
-        }
-
+        string html = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
         string emailName = string.IsNullOrEmpty(input.EmailName) ? input.Content.Name : input.EmailName;
 
         var request = new RestRequest("asset/v1/content/assets", Method.Post);

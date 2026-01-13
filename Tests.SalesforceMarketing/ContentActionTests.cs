@@ -50,7 +50,7 @@ public class ContentActionTests : TestBase
         var actions = new ContentActions(InvocationContext, FileManager);
         var request = new CreateContentBlockRequest
         {
-            Content = "test content freeform",
+            TextContent = "test content freeform",
             AssetTypeId = "195",
             Name = "Test freeform content block from the tests"
         };
