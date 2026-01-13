@@ -89,6 +89,16 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             });
         }
 
+        if (!string.IsNullOrEmpty(input.CategoryId))
+        {
+            conditions.Add(new JObject
+            {
+                ["property"] = "category.id",
+                ["simpleOperator"] = "equals",
+                ["value"] = input.CategoryId
+            });
+        }
+
         var request = new RestRequest("asset/v1/content/assets/query", Method.Post);
 
         var finalQuery = FilterHelper.BuildQueryTree(conditions);

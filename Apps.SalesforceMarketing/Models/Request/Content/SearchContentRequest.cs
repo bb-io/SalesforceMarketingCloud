@@ -1,10 +1,15 @@
-﻿using Blackbird.Applications.Sdk.Common;
+﻿using Apps.SalesforceMarketing.Handlers;
+using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Exceptions;
+using Blackbird.Applications.SDK.Extensions.FileManagement.Models.FileDataSourceItems;
 
 namespace Apps.SalesforceMarketing.Models.Request.Content;
 
 public class SearchContentRequest
 {
+    [Display("Category ID"), FileDataSource(typeof(CategoryDataHandler))]
+    public string? CategoryId { get; set; }
+
     [Display("Created from")]
     public DateTime? CreatedFromDate { get; set; }
 
