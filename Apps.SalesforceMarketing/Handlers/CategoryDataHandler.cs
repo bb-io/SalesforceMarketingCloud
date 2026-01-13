@@ -12,6 +12,7 @@ public class CategoryDataHandler(InvocationContext invocationContext)
 {
     public async Task<IEnumerable<FileDataItem>> GetFolderContentAsync(FolderContentDataSourceContext context, CancellationToken ct)
     {
+        await WebhookLogger.Log(context);
         var request = new RestRequest("asset/v1/content/categories", Method.Get);
         var filters = new List<string>();
 
@@ -25,12 +26,19 @@ public class CategoryDataHandler(InvocationContext invocationContext)
 
         request.AddQueryParameter("$page", "1");
         request.AddQueryParameter("$pageSize", "50");
+        await WebhookLogger.Log(filters);
+        await WebhookLogger.Log(request);
 
         var response = await Client.ExecuteWithErrorHandling<ItemsWrapper<CategoryEntity>>(request);
+        await WebhookLogger.Log(response);
         var folders = new List<Folder>();
+        int i = 0;
 
         foreach (var category in response.Items)
         {
+            i++;
+            await WebhookLogger.Log($"run {i}");
+            await WebhookLogger.Log(filters);
             var folder = new Folder
             {
                 Id = category.Id.ToString(),
@@ -38,7 +46,9 @@ public class CategoryDataHandler(InvocationContext invocationContext)
                 IsSelectable = true
             };
             folders.Add(folder);
+            await WebhookLogger.Log(folders);
         }
+        await WebhookLogger.Log(folders);
         return folders;
     }
 
