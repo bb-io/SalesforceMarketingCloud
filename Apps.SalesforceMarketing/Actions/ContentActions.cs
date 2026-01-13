@@ -5,14 +5,21 @@ using Apps.SalesforceMarketing.Models.Request.Content;
 using Apps.SalesforceMarketing.Models.Response.Content;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Blackbird.Applications.Sdk.Utils.Extensions.Files;
+using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
+using Blackbird.Filters.Transformations;
+using Blackbird.Filters.Xliff.Xliff2;
 using Newtonsoft.Json.Linq;
 using RestSharp;
+using System.Text;
 
 namespace Apps.SalesforceMarketing.Actions;
 
 [ActionList("Content")]
-public class ContentActions(InvocationContext invocationContext) : SalesforceInvocable(invocationContext)
+public class ContentActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) 
+    : SalesforceInvocable(invocationContext)
 {
     [Action("Search content", Description = "Search content (emails and content blocks) with specific criteria")]
     public async Task<SearchContentResponse> SearchContent([ActionParameter] SearchContentRequest input)
@@ -104,7 +111,7 @@ public class ContentActions(InvocationContext invocationContext) : SalesforceInv
         return new(entity);
     }
 
-    [Action("Create content block", Description = "")]
+    [Action("Create content block", Description = "Create a new content block")]
     public async Task<GetContentResponse> CreateContentBlock([ActionParameter] CreateContentBlockRequest input)
     {
         var request = new RestRequest("asset/v1/content/assets", Method.Post);
@@ -122,5 +129,52 @@ public class ContentActions(InvocationContext invocationContext) : SalesforceInv
 
         var createdEntity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
         return new(createdEntity);
+    }
+
+    [Action("Download email", Description = "Download email content")]
+    public async Task<DownloadEmailResponse> DownloadEmail([ActionParameter] EmailIdentifier emailId)
+    {
+        var request = new RestRequest($"asset/v1/content/assets/{emailId.EmailId}", Method.Get);
+        var entity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
+
+        var htmlContent = entity.Views.Html.Content;
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(htmlContent));
+        var file = await fileManagementClient.UploadAsync(stream, "application/html", $"{entity.Name}.html");
+
+        return new DownloadEmailResponse(file);
+    }
+
+    [Action("Upload email", Description = "Create new email from file")]
+    public async Task<GetContentResponse> UploadEmail([ActionParameter] UploadEmailRequest input)
+    {
+        var file = await fileManagementClient.DownloadAsync(input.Content);
+        var html = Encoding.UTF8.GetString(await file.GetByteData());
+
+        if (Xliff2Serializer.IsXliff2(html))
+        {
+            html = Transformation.Parse(html, $"{input.Content.Name}.xlf").Target().Serialize() ?? 
+                throw new PluginMisconfigurationException("XLIFF did not contain files");
+        }
+
+        string emailName = string.IsNullOrEmpty(input.EmailName) ? input.Content.Name : input.EmailName;
+
+        var request = new RestRequest("asset/v1/content/assets", Method.Post);
+        var body = new
+        {
+            name = emailName,
+            assetType = new
+            {
+                id = 208,   // htmlemail
+            },
+            views = new
+            {
+                html = new { content = html },
+                subjectline = new { content = input.SubjectLine }
+            },
+        };
+        request.AddJsonBody(body);
+
+        var createdEntity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
+        return new GetContentResponse(createdEntity);
     }
 }

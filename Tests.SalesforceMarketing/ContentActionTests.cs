@@ -2,6 +2,7 @@
 using Apps.SalesforceMarketing.Actions;
 using Apps.SalesforceMarketing.Models.Identifiers;
 using Apps.SalesforceMarketing.Models.Request.Content;
+using Blackbird.Applications.Sdk.Common.Files;
 
 namespace Tests.SalesforceMarketing;
 
@@ -12,11 +13,10 @@ public class ContentActionTests : TestBase
     public async Task SearchContent_ReturnsAssets()
     {
         // Arrange
-        var actions = new ContentActions(InvocationContext);
+        var actions = new ContentActions(InvocationContext, FileManager);
         var input = new SearchContentRequest
         {
-            CreatedFromDate = new DateTime(2025, 10, 06, 11, 12, 00),
-            CreatedToDate = new DateTime(2025, 10, 06, 11, 14, 00),
+            CreatedToDate = new DateTime(2025, 10, 06),
         };
 
         // Act
@@ -32,11 +32,11 @@ public class ContentActionTests : TestBase
     public async Task GetEmailDetails_ReturnsEmailMetadata()
     {
         // Arrange
-        var actions = new ContentActions(InvocationContext);
-        var assetId = new EmailIdentifier { EmailId = "670941" };
+        var actions = new ContentActions(InvocationContext, FileManager);
+        var emailId = new EmailIdentifier { EmailId = "670941" };
 
         // Act
-        var result = await actions.GetEmailDetails(assetId);
+        var result = await actions.GetEmailDetails(emailId);
 
         // Assert
         PrintResult(result);
@@ -47,7 +47,7 @@ public class ContentActionTests : TestBase
     public async Task CreateContentBlock_ReturnsCreatedContentBlock()
     {
         // Arrange
-        var actions = new ContentActions(InvocationContext);
+        var actions = new ContentActions(InvocationContext, FileManager);
         var request = new CreateContentBlockRequest
         {
             Content = "test content freeform",
@@ -57,6 +57,40 @@ public class ContentActionTests : TestBase
 
         // Act
         var result = await actions.CreateContentBlock(request);
+
+        // Assert
+        PrintResult(result);
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
+    public async Task DownloadEmail_IsSuccess()
+    {
+        // Arrange
+        var actions = new ContentActions(InvocationContext, FileManager);
+        var emailId = new EmailIdentifier { EmailId = "707398" };
+
+        // Act
+        var result = await actions.DownloadEmail(emailId);
+
+        // Assert
+        Assert.IsNotNull(result.Content);
+    }
+
+    [TestMethod]
+    public async Task UploadEmail_ReturnsCreatedAsset()
+    {
+        // Arrange
+        var actions = new ContentActions(InvocationContext, FileManager);
+        var request = new UploadEmailRequest
+        {
+            Content = new FileReference { Name = "test.html" },
+            SubjectLine = "test subject from tests",
+            EmailName = "test name 123"
+        };
+
+        // Act
+        var result = await actions.UploadEmail(request);
 
         // Assert
         PrintResult(result);
