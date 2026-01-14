@@ -9,6 +9,8 @@ namespace Apps.SalesforceMarketing.Handlers;
 public class CategoryDataHandler(InvocationContext invocationContext)
     : SalesforceInvocable(invocationContext), IAsyncFileDataSourceItemHandler
 {
+    private const int RootFolderId = 0;
+
     public async Task<IEnumerable<FileDataItem>> GetFolderContentAsync(FolderContentDataSourceContext context, CancellationToken ct)
     {
         var request = new RestRequest("asset/v1/content/categories", Method.Get);
@@ -17,7 +19,7 @@ public class CategoryDataHandler(InvocationContext invocationContext)
         if (!string.IsNullOrEmpty(context.FolderId))
             filters.Add($"parentId eq {context.FolderId}");
         else if (string.IsNullOrEmpty(context.FolderId))
-            filters.Add("parentId eq 0");   // root = 0
+            filters.Add($"parentId eq {RootFolderId}");
 
         if (filters.Count != 0)
             request.AddQueryParameter("$filter", string.Join(" AND ", filters));
@@ -40,11 +42,8 @@ public class CategoryDataHandler(InvocationContext invocationContext)
 
     public async Task<IEnumerable<FolderPathItem>> GetFolderPathAsync(FolderPathDataSourceContext context, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(context.FileDataItemId))
-            return [];
-
-        if (!int.TryParse(context.FileDataItemId, out int currentId))
-            return [];
+        if (string.IsNullOrEmpty(context.FileDataItemId) || !int.TryParse(context.FileDataItemId, out int currentId))
+            return [new FolderPathItem { Id = RootFolderId.ToString(), DisplayName = "Content Builder" }];
 
         var path = new List<FolderPathItem>();
         while (currentId != 0)

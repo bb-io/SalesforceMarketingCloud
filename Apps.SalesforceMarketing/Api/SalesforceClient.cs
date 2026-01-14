@@ -136,8 +136,16 @@ public class SalesforceClient : BlackBirdRestClient
 
         var error = JsonConvert.DeserializeObject<ErrorResponse>(response.Content);
         if (error == null || error.Message == null)
-            throw new PluginApplicationException("Error - could not deserialize an error message");
+            throw new PluginApplicationException("Unknown error");
 
-        throw new PluginApplicationException(error.Message);
+        string errorMessage = error.Message;
+        if (error.ValidationErrors?.Count > 0)
+        {
+            var validationErrorMessages = error.ValidationErrors.Select(x => x.Message);
+            string validationErrorsString = string.Join("; ", validationErrorMessages);
+            errorMessage = $"{errorMessage} {validationErrorsString}";
+        }            
+
+        throw new PluginApplicationException(errorMessage);
     }
 }

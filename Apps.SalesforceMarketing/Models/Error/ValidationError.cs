@@ -2,11 +2,8 @@
 
 namespace Apps.SalesforceMarketing.Models.Error;
 
-public class ErrorResponse
+public class ValidationError
 {
     [JsonProperty("message")]
     public string? Message { get; set; }
-
-    [JsonProperty("validationErrors")]
-    public List<ValidationError>? ValidationErrors { get; set; }
 }
