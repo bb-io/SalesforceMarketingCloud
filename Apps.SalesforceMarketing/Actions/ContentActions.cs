@@ -159,6 +159,8 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         if (!string.IsNullOrEmpty(subjectLine))
             htmlContent = HtmlHelper.InjectDivMetadata(htmlContent, subjectLine, BlackbirdMetadataIds.SubjectLine);
 
+        htmlContent = HtmlHelper.InjectHeadMetadata(htmlContent, entity.Id, BlackbirdMetadataIds.EmailId);
+
         using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(htmlContent));
         var file = await fileManagementClient.UploadAsync(stream, "application/html", $"{entity.Name}.html");
 

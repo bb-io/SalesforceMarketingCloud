@@ -2,5 +2,8 @@
 
 public static class BlackbirdMetadataIds
 {
-    public const string SubjectLine = "blackbird-subject-line";
+    private const string BlackbirdPrefix = "blackbird-";
+
+    public const string SubjectLine = $"{BlackbirdPrefix}subject-line";
+    public const string EmailId = $"{BlackbirdPrefix}email-id";
 }
