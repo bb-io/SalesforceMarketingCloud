@@ -13,36 +13,17 @@ public class EmailDataHandler(InvocationContext invocationContext)
 {
     public async Task<IEnumerable<DataSourceItem>> GetDataAsync(DataSourceContext context, CancellationToken ct)
     {
-        var conditions = new List<JObject>()
-        {
-            new() {
-                ["property"] = "assetType.name",
-                ["simpleOperator"] = "in",
-                ["value"] = new JArray
-                {
-                    "htmlemail",
-                    "templatebasedemail",
-                    "textonlyemail"
-                }
-            }
-        };
-
-        if (!string.IsNullOrEmpty(context.SearchString))
-        {
-            conditions.Add(new JObject
-            {
-                ["property"] = "name",
-                ["simpleOperator"] = "like",
-                ["value"] = context.SearchString
-            });
-        }
+        var assetTypes = new[] { "htmlemail", "templatebasedemail" };
+        var query = new AssetFilterBuilder()
+            .WhereIn("assetType.name", assetTypes)
+            .WhereLike("name", context.SearchString)
+            .Build();
 
         var request = new RestRequest("asset/v1/content/assets/query", Method.Post);
 
-        var finalQuery = FilterHelper.BuildQueryTree(conditions);
         var body = new JObject();
-        if (finalQuery != null)
-            body["query"] = finalQuery;
+        if (query != null)
+            body["query"] = query;
 
         request.AddStringBody(body.ToString(), DataFormat.Json);
         var entities = await Client.ExecuteWithErrorHandling<ItemsWrapper<AssetEntity>>(request);

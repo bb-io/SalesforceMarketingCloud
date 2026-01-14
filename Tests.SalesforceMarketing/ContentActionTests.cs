@@ -16,7 +16,7 @@ public class ContentActionTests : TestBase
         var actions = new ContentActions(InvocationContext, FileManager);
         var input = new SearchContentRequest
         {
-            CreatedFromDate = new DateTime(2026, 1, 13),
+            CreatedFromDate = new DateTime(2026, 1, 12),
         };
 
         // Act

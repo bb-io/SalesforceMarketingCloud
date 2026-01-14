@@ -23,85 +23,25 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
     {
         input.Validate();
 
-        var conditions = new List<JObject>()
-        {
-            new() {
-                ["property"] = "assetType.name",
-                ["simpleOperator"] = "in",
-                ["value"] = new JArray
-                { 
-                    // Emails
-                    "htmlemail",
-                    "templatebasedemail",
-                    "textonlyemail",                
-                    // Content blocks
-                    "textblock",
-                    "imageblock",
-                    "freeformblock",
-                    "htmlblock",
-                    "buttonblock",
-                    "socialfollowblock",
-                    "socialshareblock"
-                }
-            }
+        var assetTypes = new[] {
+            "htmlemail", "templatebasedemail", "textblock", 
+            "freeformblock", "htmlblock",
         };
 
-        if (input.CreatedFromDate.HasValue)
-        {
-            conditions.Add(new JObject
-            {
-                ["property"] = "createdDate",
-                ["simpleOperator"] = "greaterThanOrEqual",
-                ["value"] = input.CreatedFromDate.Value.ToString("yyyy-MM-ddTHH:mm:ss")
-            });
-        }
-
-        if (input.CreatedToDate.HasValue)
-        {
-            conditions.Add(new JObject
-            {
-                ["property"] = "createdDate",
-                ["simpleOperator"] = "lessThanOrEqual",
-                ["value"] = input.CreatedToDate.Value.ToString("yyyy-MM-ddTHH:mm:ss")
-            });
-        }
-
-        if (input.UpdatedFromDate.HasValue)
-        {
-            conditions.Add(new JObject
-            {
-                ["property"] = "modifiedDate",
-                ["simpleOperator"] = "greaterThanOrEqual",
-                ["value"] = input.UpdatedFromDate.Value.ToString("yyyy-MM-ddTHH:mm:ss")
-            });
-        }
-
-        if (input.UpdatedToDate.HasValue)
-        {
-            conditions.Add(new JObject
-            {
-                ["property"] = "modifiedDate",
-                ["simpleOperator"] = "lessThanOrEqual",
-                ["value"] = input.UpdatedToDate.Value.ToString("yyyy-MM-ddTHH:mm:ss")
-            });
-        }
-
-        if (!string.IsNullOrEmpty(input.CategoryId))
-        {
-            conditions.Add(new JObject
-            {
-                ["property"] = "category.id",
-                ["simpleOperator"] = "equals",
-                ["value"] = input.CategoryId
-            });
-        }
+        var query = new AssetFilterBuilder()
+            .WhereIn("assetType.name", assetTypes)
+            .WhereGreaterOrEqual("createdDate", input.CreatedFromDate)
+            .WhereLessOrEqual("createdDate", input.CreatedToDate)
+            .WhereGreaterOrEqual("modifiedDate", input.UpdatedFromDate)
+            .WhereLessOrEqual("modifiedDate", input.UpdatedToDate)
+            .WhereEquals("category.id", input.CategoryId)
+            .Build();
 
         var request = new RestRequest("asset/v1/content/assets/query", Method.Post);
 
-        var finalQuery = FilterHelper.BuildQueryTree(conditions);
         var body = new JObject();
-        if (finalQuery != null)
-            body["query"] = finalQuery;
+        if (query != null)
+            body["query"] = query;
 
         request.AddStringBody(body.ToString(), DataFormat.Json);
         var entities = await Client.PaginatePost<AssetEntity>(request);
