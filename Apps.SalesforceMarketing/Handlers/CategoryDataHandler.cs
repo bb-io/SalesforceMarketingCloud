@@ -52,6 +52,9 @@ public class CategoryDataHandler(InvocationContext invocationContext)
             var request = new RestRequest($"asset/v1/content/categories/{currentId}", Method.Get);
 
             var category = await Client.ExecuteWithErrorHandling<CategoryEntity>(request);
+            if (category == null) 
+                break;
+
             path.Add(new FolderPathItem
             {
                 Id = category.Id.ToString(),
@@ -61,9 +64,10 @@ public class CategoryDataHandler(InvocationContext invocationContext)
             currentId = category.ParentId;
         }
 
-        path.Reverse();
-        path.RemoveAt(-1);
+        if (path.Count > 0)
+            path.RemoveAt(0);
 
+        path.Reverse();
         return path;
     }
 }
