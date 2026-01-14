@@ -62,6 +62,8 @@ public class CategoryDataHandler(InvocationContext invocationContext)
         }
 
         path.Reverse();
+        path.RemoveAt(-1);
+
         return path;
     }
 }
