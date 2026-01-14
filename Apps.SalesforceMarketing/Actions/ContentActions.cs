@@ -165,13 +165,23 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         return new DownloadEmailResponse(file);
     }
 
-    [Action("Upload email", Description = "Create new email from file")]
-    public async Task<GetContentResponse> UploadEmail([ActionParameter] UploadEmailRequest input)
+    [Action("Create new email", Description = "Create new email from file")]
+    public async Task<GetContentResponse> CreateEmail([ActionParameter] UploadEmailRequest input)
     {
         string html = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
 
         var (UpdatedHtml, ExtractedSubject) = HtmlHelper.ExtractAndDeleteDivMetadata(html, BlackbirdMetadataIds.SubjectLine);
         var cleanHtml = UpdatedHtml;
+
+        if (input.ScriptVariableNames != null && input.ScriptVariableValues != null)
+        {
+            cleanHtml = ScriptHelper.UpsertScriptVariables(
+                cleanHtml,
+                input.ScriptVariableNames,
+                input.ScriptVariableValues
+            );
+        }
+
         string subject = 
             input.SubjectLine ?? 
             ExtractedSubject ?? 

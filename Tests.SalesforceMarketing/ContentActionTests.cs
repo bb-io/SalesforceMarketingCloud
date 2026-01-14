@@ -68,7 +68,7 @@ public class ContentActionTests : TestBase
     {
         // Arrange
         var actions = new ContentActions(InvocationContext, FileManager);
-        var emailId = new EmailIdentifier { EmailId = "930504" };
+        var emailId = new EmailIdentifier { EmailId = "930898" };
 
         // Act
         var result = await actions.DownloadEmail(emailId);
@@ -78,19 +78,20 @@ public class ContentActionTests : TestBase
     }
 
     [TestMethod]
-    public async Task UploadEmail_ReturnsCreatedAsset()
+    public async Task CreateEmail_ReturnsCreatedAsset()
     {
         // Arrange
         var actions = new ContentActions(InvocationContext, FileManager);
         var request = new UploadEmailRequest
         {
             Content = new FileReference { Name = "test.html" },
-            //SubjectLine = "test subject from tests",
-            EmailName = "test name 456"
+            EmailName = "test name new AMPScript",
+            ScriptVariableNames = ["@Lang", "testname", "chkey"],
+            ScriptVariableValues = ["en-US", "testvalue", "confluenceCloudCSComms"]
         };
 
         // Act
-        var result = await actions.UploadEmail(request);
+        var result = await actions.CreateEmail(request);
 
         // Assert
         PrintResult(result);
