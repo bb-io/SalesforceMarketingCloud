@@ -11,6 +11,7 @@ using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Newtonsoft.Json.Linq;
 using RestSharp;
+using System.Text;
 
 namespace Apps.SalesforceMarketing.Actions;
 
@@ -94,14 +95,15 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         var entity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
 
         string htmlContent = entity.Views.Html.Content;
+        string subjectLine = entity.Views.SubjectLine.Content;
 
-        string subjectLine = entity.Views.SubjectLine.Content ?? "";
         if (!string.IsNullOrEmpty(subjectLine))
             htmlContent = HtmlHelper.InjectDivMetadata(htmlContent, subjectLine, BlackbirdMetadataIds.SubjectLine);
 
         htmlContent = HtmlHelper.InjectHeadMetadata(htmlContent, entity.Id, BlackbirdMetadataIds.EmailId);
+        htmlContent = SubjectLineHelper.ExtractSubjectLinesFromAmpScript(htmlContent);
 
-        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(htmlContent));
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent));
         var file = await fileManagementClient.UploadAsync(stream, "application/html", $"{entity.Name}.html");
 
         return new DownloadEmailResponse(file);
@@ -113,7 +115,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         string html = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
 
         var (UpdatedHtml, ExtractedSubject) = HtmlHelper.ExtractAndDeleteDivMetadata(html, BlackbirdMetadataIds.SubjectLine);
-        var cleanHtml = UpdatedHtml;
+        string cleanHtml = UpdatedHtml;
 
         if (input.ScriptVariableNames != null && input.ScriptVariableValues != null)
         {
@@ -123,6 +125,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
                 input.ScriptVariableValues
             );
         }
+        cleanHtml = SubjectLineHelper.RestoreSubjectLinesInAmpScript(cleanHtml);
 
         string subject = 
             input.SubjectLine ?? 
