@@ -10,9 +10,9 @@ public class ContentBlockTypeDataHandler : IStaticDataSourceItemHandler
     {
         return 
         [
-            new DataSourceItem(AssetTypeIds.FreeformBlock, "Freeform block"),
-            new DataSourceItem(AssetTypeIds.TextBlock, "Text block"),
-            new DataSourceItem(AssetTypeIds.HtmlBlock, "HTML block")
+            new DataSourceItem(AssetTypeIds.FreeformBlock.ToString(), "Freeform block"),
+            new DataSourceItem(AssetTypeIds.TextBlock.ToString(), "Text block"),
+            new DataSourceItem(AssetTypeIds.HtmlBlock.ToString(), "HTML block")
         ];
     }
 }

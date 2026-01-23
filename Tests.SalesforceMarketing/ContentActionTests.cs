@@ -68,7 +68,7 @@ public class ContentActionTests : TestBase
     {
         // Arrange
         var actions = new ContentActions(InvocationContext, FileManager);
-        var emailId = new EmailIdentifier { EmailId = "931800" };
+        var emailId = new EmailIdentifier { EmailId = "932683" };
 
         // Act
         var result = await actions.DownloadEmail(emailId);

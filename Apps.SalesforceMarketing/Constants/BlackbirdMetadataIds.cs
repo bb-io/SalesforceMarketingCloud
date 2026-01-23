@@ -2,10 +2,9 @@
 
 public static class BlackbirdMetadataIds
 {
-    private const string BlackbirdPrefix = "blackbird-";
-
-    public const string SubjectLine = $"{BlackbirdPrefix}subject-line";
-    public const string Preheader = $"{BlackbirdPrefix}preheader";
-    public const string EmailId = $"{BlackbirdPrefix}email-id";
-    public const string AmpScript = $"{BlackbirdPrefix}ampscript";
+    public const string SubjectLine = $"blackbird-subject-line";
+    public const string Preheader = $"blackbird-preheader";
+    public const string EmailId = $"blackbird-email-id";
+    public const string AmpScript = $"blackbird-ampscript";
+    public const string ContentBlockId = $"blackbird-content-block-id";
 }

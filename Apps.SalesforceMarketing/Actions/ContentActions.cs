@@ -103,6 +103,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         htmlContent = HtmlHelper.InjectHeadMetadata(htmlContent, entity.Id, BlackbirdMetadataIds.EmailId);
         htmlContent = ScriptHelper.ExtractVariables(htmlContent, "@subjectLine", BlackbirdMetadataIds.SubjectLine);
         htmlContent = ScriptHelper.WrapAmpScriptBlocks(htmlContent);
+        htmlContent = await ContentBlockHelper.ExpandContentBlocks(htmlContent, Client);
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent));
         var file = await fileManagementClient.UploadAsync(stream, "application/html", $"{entity.Name}.html");
@@ -141,10 +142,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         var body = new
         {
             name = emailName,
-            assetType = new
-            {
-                id = 208,   // htmlemail
-            },
+            assetType = new { id = AssetTypeIds.HtmlEmail },
             views = new
             {
                 html = new { content = html },

@@ -39,4 +39,7 @@ public class AssetEntity
 
     [JsonProperty("views")]
     public AssetViews Views { get; set; }
+
+    [JsonProperty("content")]
+    public string Content { get; set; }
 }
