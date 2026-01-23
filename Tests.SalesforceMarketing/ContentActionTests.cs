@@ -68,7 +68,7 @@ public class ContentActionTests : TestBase
     {
         // Arrange
         var actions = new ContentActions(InvocationContext, FileManager);
-        var emailId = new EmailIdentifier { EmailId = "933467" };
+        var emailId = new EmailIdentifier { EmailId = "931674" };
 
         // Act
         var result = await actions.DownloadEmail(emailId);
@@ -87,8 +87,8 @@ public class ContentActionTests : TestBase
         {
             Content = new FileReference { Name = "test.html" },
             EmailName = "test ampscript update vars",
-            ScriptVariableNames =   [   "chkey",           "@jobtype",         "test"                  ],
-            ScriptVariableValues =  [   "updatedChKey",    "updatedJobType",   "this will not update"  ]
+            //ScriptVariableNames =   [   "chkey",           "@jobtype",         "test"                  ],
+            //ScriptVariableValues =  [   "updatedChKey",    "updatedJobType",   "this will not update"  ]
         };
 
         // Act

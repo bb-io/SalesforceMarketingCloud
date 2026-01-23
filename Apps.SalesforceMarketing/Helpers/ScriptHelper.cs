@@ -1,10 +1,67 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Text;
+using System.Text.RegularExpressions;
+using Apps.SalesforceMarketing.Constants;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 
 namespace Apps.SalesforceMarketing.Helpers;
 
 public static class ScriptHelper
 {
+    private static readonly Regex AmpScriptBlockRegex = new Regex(@"(?s)%%\[(.*?)\]%%", RegexOptions.Compiled);
+
+    public static string WrapAmpScriptBlocks(string html)
+    {
+        var matches = AmpScriptBlockRegex.Matches(html);
+        if (matches.Count == 0) 
+            return html;
+
+        var sb = new StringBuilder(html);
+
+        for (int i = matches.Count - 1; i >= 0; i--)
+        {
+            var match = matches[i];
+
+            string innerContent = match.Groups[1].Value;
+            innerContent = innerContent.Replace("</script>", "<\\/script>", StringComparison.OrdinalIgnoreCase);
+
+            string id = $"{BlackbirdMetadataIds.AmpScript}-{i + 1}";
+            string scriptTag = $"<script id=\"{id}\" type=\"text/ampscript\">{innerContent}</script>";
+
+            sb.Remove(match.Index, match.Length);
+            sb.Insert(match.Index, scriptTag);
+        }
+
+        return sb.ToString();
+    }
+
+    public static string UnwrapAmpScriptBlocks(string html)
+    {
+        var scriptRegex = new Regex(
+            $@"(?s)<script\s+[^>]*?id=""({BlackbirdMetadataIds.AmpScript}-\d+)""[^>]*?>(.*?)</script>",
+            RegexOptions.IgnoreCase
+        );
+
+        var matches = scriptRegex.Matches(html);
+        if (matches.Count == 0) return html;
+
+        var sb = new StringBuilder(html);
+
+        for (int i = matches.Count - 1; i >= 0; i--)
+        {
+            var match = matches[i];
+            string innerContent = match.Groups[2].Value;
+
+            innerContent = innerContent.Replace("<\\/script>", "</script>", StringComparison.OrdinalIgnoreCase);
+
+            string originalBlock = $"%%[{innerContent}]%%";
+
+            sb.Remove(match.Index, match.Length);
+            sb.Insert(match.Index, originalBlock);
+        }
+
+        return sb.ToString();
+    }
+
     public static string UpsertScriptVariables(string html, IEnumerable<string> varNames, IEnumerable<string> varValues)
     {
         if (string.IsNullOrWhiteSpace(html) || varNames == null || !varNames.Any())

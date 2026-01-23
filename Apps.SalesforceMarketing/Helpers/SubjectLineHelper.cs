@@ -74,11 +74,9 @@ public static class SubjectLineHelper
             string token = $"[[{div.Id}]]";
             string translatedText = div.InnerHtml;
 
-
             translatedText = WebUtility.HtmlDecode(translatedText);
             result = result.Replace(token, translatedText);
         }
-
 
         result = Regex.Replace(
             result, 

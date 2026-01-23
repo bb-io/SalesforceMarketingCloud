@@ -95,13 +95,14 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         var entity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
 
         string htmlContent = entity.Views.Html.Content;
-        string subjectLine = entity.Views.SubjectLine.Content;
+        string? subjectLine = entity.Views.SubjectLine?.Content;
 
         if (!string.IsNullOrEmpty(subjectLine))
             htmlContent = HtmlHelper.InjectDivMetadata(htmlContent, subjectLine, BlackbirdMetadataIds.SubjectLine);
 
         htmlContent = HtmlHelper.InjectHeadMetadata(htmlContent, entity.Id, BlackbirdMetadataIds.EmailId);
         htmlContent = SubjectLineHelper.ExtractSubjectLinesFromAmpScript(htmlContent);
+        htmlContent = ScriptHelper.WrapAmpScriptBlocks(htmlContent);
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent));
         var file = await fileManagementClient.UploadAsync(stream, "application/html", $"{entity.Name}.html");
@@ -125,6 +126,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
                 input.ScriptVariableValues
             );
         }
+        cleanHtml = ScriptHelper.UnwrapAmpScriptBlocks(cleanHtml);
         cleanHtml = SubjectLineHelper.RestoreSubjectLinesInAmpScript(cleanHtml);
 
         string subject = 

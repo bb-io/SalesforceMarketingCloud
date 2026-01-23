@@ -6,4 +6,5 @@ public static class BlackbirdMetadataIds
 
     public const string SubjectLine = $"{BlackbirdPrefix}subject-line";
     public const string EmailId = $"{BlackbirdPrefix}email-id";
+    public const string AmpScript = $"{BlackbirdPrefix}ampscript";
 }
