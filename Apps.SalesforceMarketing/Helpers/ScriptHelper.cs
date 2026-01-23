@@ -1,13 +1,95 @@
-﻿using System.Text;
-using System.Text.RegularExpressions;
-using Apps.SalesforceMarketing.Constants;
+﻿using Apps.SalesforceMarketing.Constants;
 using Blackbird.Applications.Sdk.Common.Exceptions;
+using HtmlAgilityPack;
+using System.Net;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Apps.SalesforceMarketing.Helpers;
 
 public static class ScriptHelper
 {
-    private static readonly Regex AmpScriptBlockRegex = new Regex(@"(?s)%%\[(.*?)\]%%", RegexOptions.Compiled);
+    private static readonly Regex AmpScriptBlockRegex = new Regex(@"(?s)%%\[.*?\]%%", RegexOptions.Compiled);
+
+    public static string ExtractVariables(string html, string variableName, string metadataId)
+    {
+        var assignmentRegex = new Regex(
+            $@"(?i)(SET\s+{Regex.Escape(variableName)}\s*=\s*)(['""])(.*?)\2",
+            RegexOptions.Compiled
+        );
+
+        var matches = assignmentRegex.Matches(html);
+
+        if (matches.Count == 0)
+            return html;
+
+        var sbHtml = new StringBuilder(html);
+        var translationDivs = new StringBuilder();
+
+        translationDivs.AppendLine();
+        translationDivs.AppendLine($"");
+
+        for (int i = matches.Count - 1; i >= 0; i--)
+        {
+            var m = matches[i];
+
+            var prefix = m.Groups[1].Value;
+            var quote = m.Groups[2].Value;
+            var content = m.Groups[3].Value;
+
+            if (string.IsNullOrWhiteSpace(content) || content.StartsWith($"[[{metadataId}"))
+                continue;
+
+            string id = $"{metadataId}-{matches.Count - i}";
+            string token = $"[[{id}]]";
+
+            sbHtml.Remove(m.Index, m.Length);
+            sbHtml.Insert(m.Index, $"{prefix}{quote}{token}{quote}");
+
+            translationDivs.AppendLine(
+                $"<div id=\"{id}\">{content}</div>"
+            );
+        }
+
+        string result = sbHtml.ToString();
+        var bodyMatch = Regex.Match(result, "<body[^>]*>", RegexOptions.IgnoreCase);
+
+        if (bodyMatch.Success)
+            result = result.Insert(bodyMatch.Index + bodyMatch.Length, translationDivs.ToString());
+
+        return result;
+    }
+
+    public static string RestoreVariables(string html, string metadataId)
+    {
+        var doc = new HtmlDocument();
+        doc.LoadHtml(html);
+
+        var translationDivs = doc.DocumentNode.SelectNodes($"//div[starts-with(@id, '{metadataId}-')]");
+
+        if (translationDivs == null)
+            return html;
+
+        string result = html;
+
+        foreach (var div in translationDivs)
+        {
+            string token = $"[[{div.Id}]]";
+            string translatedText = div.InnerHtml;
+
+            translatedText = WebUtility.HtmlDecode(translatedText);
+            result = result.Replace(token, translatedText);
+        }
+
+        result = Regex.Replace(
+            result,
+            $@"<div id=""{Regex.Escape(metadataId)}-\d+"".*?</div>\s*",
+            "",
+            RegexOptions.Singleline
+        );
+
+        return result.Trim();
+    }
 
     public static string WrapAmpScriptBlocks(string html)
     {
@@ -21,11 +103,11 @@ public static class ScriptHelper
         {
             var match = matches[i];
 
-            string innerContent = match.Groups[1].Value;
-            innerContent = innerContent.Replace("</script>", "<\\/script>", StringComparison.OrdinalIgnoreCase);
+            string content = match.Value;
+            content = content.Replace("</script>", "<\\/script>", StringComparison.OrdinalIgnoreCase);
 
             string id = $"{BlackbirdMetadataIds.AmpScript}-{i + 1}";
-            string scriptTag = $"<script id=\"{id}\" type=\"text/ampscript\">{innerContent}</script>";
+            string scriptTag = $"<script id=\"{id}\" type=\"text/ampscript\">{content}\n</script>";
 
             sb.Remove(match.Index, match.Length);
             sb.Insert(match.Index, scriptTag);
@@ -42,8 +124,6 @@ public static class ScriptHelper
         );
 
         var matches = scriptRegex.Matches(html);
-        if (matches.Count == 0) return html;
-
         var sb = new StringBuilder(html);
 
         for (int i = matches.Count - 1; i >= 0; i--)
@@ -53,10 +133,8 @@ public static class ScriptHelper
 
             innerContent = innerContent.Replace("<\\/script>", "</script>", StringComparison.OrdinalIgnoreCase);
 
-            string originalBlock = $"%%[{innerContent}]%%";
-
             sb.Remove(match.Index, match.Length);
-            sb.Insert(match.Index, originalBlock);
+            sb.Insert(match.Index, innerContent);
         }
 
         return sb.ToString();

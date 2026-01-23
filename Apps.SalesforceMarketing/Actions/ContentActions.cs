@@ -101,7 +101,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             htmlContent = HtmlHelper.InjectDivMetadata(htmlContent, subjectLine, BlackbirdMetadataIds.SubjectLine);
 
         htmlContent = HtmlHelper.InjectHeadMetadata(htmlContent, entity.Id, BlackbirdMetadataIds.EmailId);
-        htmlContent = SubjectLineHelper.ExtractSubjectLinesFromAmpScript(htmlContent);
+        htmlContent = ScriptHelper.ExtractVariables(htmlContent, "@subjectLine", BlackbirdMetadataIds.SubjectLine);
         htmlContent = ScriptHelper.WrapAmpScriptBlocks(htmlContent);
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent));
@@ -127,7 +127,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             );
         }
         cleanHtml = ScriptHelper.UnwrapAmpScriptBlocks(cleanHtml);
-        cleanHtml = SubjectLineHelper.RestoreSubjectLinesInAmpScript(cleanHtml);
+        cleanHtml = ScriptHelper.RestoreVariables(cleanHtml, BlackbirdMetadataIds.SubjectLine);
 
         string subject = 
             input.SubjectLine ?? 
