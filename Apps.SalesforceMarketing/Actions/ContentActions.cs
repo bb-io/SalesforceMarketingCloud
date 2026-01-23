@@ -96,10 +96,10 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
 
         string htmlContent = entity.Views.Html.Content;
         string? subjectLine = entity.Views.SubjectLine?.Content;
+        string? preheader = entity.Views.Preheader?.Content;
 
-        if (!string.IsNullOrEmpty(subjectLine))
-            htmlContent = HtmlHelper.InjectDivMetadata(htmlContent, subjectLine, BlackbirdMetadataIds.SubjectLine);
-
+        htmlContent = HtmlHelper.InjectDivMetadata(htmlContent, subjectLine, BlackbirdMetadataIds.SubjectLine);
+        htmlContent = HtmlHelper.InjectDivMetadata(htmlContent, preheader, BlackbirdMetadataIds.Preheader);
         htmlContent = HtmlHelper.InjectHeadMetadata(htmlContent, entity.Id, BlackbirdMetadataIds.EmailId);
         htmlContent = ScriptHelper.ExtractVariables(htmlContent, "@subjectLine", BlackbirdMetadataIds.SubjectLine);
         htmlContent = ScriptHelper.WrapAmpScriptBlocks(htmlContent);
@@ -115,19 +115,17 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
     {
         string html = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
 
-        var (UpdatedHtml, ExtractedSubject) = HtmlHelper.ExtractAndDeleteDivMetadata(html, BlackbirdMetadataIds.SubjectLine);
-        string cleanHtml = UpdatedHtml;
+        var (htmlWithoutSubject, ExtractedSubject) = HtmlHelper.ExtractAndDeleteDivMetadata(html, BlackbirdMetadataIds.SubjectLine);
+        html = htmlWithoutSubject;
+
+        var (htmlWithoutPreheader, ExtractedPreheader) = HtmlHelper.ExtractAndDeleteDivMetadata(html, BlackbirdMetadataIds.Preheader);
+        html = htmlWithoutPreheader;
 
         if (input.ScriptVariableNames != null && input.ScriptVariableValues != null)
-        {
-            cleanHtml = ScriptHelper.UpsertScriptVariables(
-                cleanHtml,
-                input.ScriptVariableNames,
-                input.ScriptVariableValues
-            );
-        }
-        cleanHtml = ScriptHelper.UnwrapAmpScriptBlocks(cleanHtml);
-        cleanHtml = ScriptHelper.RestoreVariables(cleanHtml, BlackbirdMetadataIds.SubjectLine);
+            html = ScriptHelper.UpsertScriptVariables(html, input.ScriptVariableNames, input.ScriptVariableValues);
+
+        html = ScriptHelper.UnwrapAmpScriptBlocks(html);
+        html = ScriptHelper.RestoreVariables(html, BlackbirdMetadataIds.SubjectLine);
 
         string subject = 
             input.SubjectLine ?? 
@@ -135,6 +133,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             throw new PluginMisconfigurationException(
                 "Email subject is not found in the input file. Provide it in the input or include it in the file"
             );
+        string? preheader = ExtractedPreheader;
 
         string emailName = string.IsNullOrEmpty(input.EmailName) ? input.Content.Name : input.EmailName;
 
@@ -148,8 +147,9 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             },
             views = new
             {
-                html = new { content = cleanHtml },
-                subjectline = new { content = subject }
+                html = new { content = html },
+                subjectline = new { content = subject },
+                preheader = new { content = preheader },
             },
             category = !string.IsNullOrEmpty(input.CategoryId) ? new { id = int.Parse(input.CategoryId) } : null
         };
