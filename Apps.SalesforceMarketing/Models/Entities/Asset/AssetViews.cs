@@ -8,11 +8,11 @@ public class AssetViews
     public AssetView Html { get; set; }
 
     [JsonProperty("subjectline")]
-    public AssetView SubjectLine { get; set; }
+    public AssetView? SubjectLine { get; set; }
 
     [JsonProperty("text")]
     public AssetView Text { get; set; }
 
     [JsonProperty("preheader")]
-    public AssetView Preheader { get; set; }
+    public AssetView? Preheader { get; set; }
 }
