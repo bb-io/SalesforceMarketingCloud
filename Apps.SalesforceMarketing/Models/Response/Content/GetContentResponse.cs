@@ -9,10 +9,10 @@ public class GetContentResponse(AssetEntity assetEntity)
     public string Id { get; set; } = assetEntity.Id;
 
     [Display("Customer key")]
-    public string CustomerKey { get; set; } = assetEntity.CustomerKey;
+    public string? CustomerKey { get; set; } = assetEntity.CustomerKey;
 
     [Display("Asset type")]
-    public string? AssetType { get; set; } = assetEntity.AssetType?.DisplayName;
+    public string? AssetType { get; set; } = assetEntity.AssetType.DisplayName;
 
     [Display("Asset name")]
     public string Name { get; set; } = assetEntity.Name;
