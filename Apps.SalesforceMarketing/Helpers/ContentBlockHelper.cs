@@ -20,12 +20,16 @@ public static class ContentBlockHelper
         RegexOptions.Compiled
     );
 
-    public static async Task<string> ExpandContentBlocks(string html, SalesforceClient client)
+    public static async Task<string> ExpandContentBlocks(
+        string html, 
+        SalesforceClient client, 
+        IEnumerable<string>? blockIdsToIgnore)
     {
         var sb = new StringBuilder(html);
         bool foundNewBlocks = true;
         int depth = 0;
-        const int MaxDepth = 5;
+        const int MaxDepth = 5; 
+        var skippedIds = new HashSet<string>(blockIdsToIgnore ?? []);
 
         while (foundNewBlocks && depth < MaxDepth)
         {
@@ -37,6 +41,8 @@ public static class ContentBlockHelper
             {
                 var match = idMatches[i];
                 string blockId = match.Groups[1].Value;
+                if (skippedIds.Contains(blockId)) 
+                    continue;
 
                 var blockEntity = await GetAssetById(client, blockId);
 
@@ -63,6 +69,8 @@ public static class ContentBlockHelper
                     : null;
 
                 var blockEntity = await GetAssetByName(client, blockName, parentFolderName);
+                if (blockEntity != null && skippedIds.Contains(blockEntity.Id))
+                    continue;
 
                 string blockContent = GetBlockContent(blockEntity);
                 string blockId = blockEntity?.Id ?? "0";

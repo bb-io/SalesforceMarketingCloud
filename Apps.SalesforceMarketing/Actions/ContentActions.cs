@@ -89,7 +89,9 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
     }
 
     [Action("Download email", Description = "Download email content")]
-    public async Task<DownloadEmailResponse> DownloadEmail([ActionParameter] EmailIdentifier emailId)
+    public async Task<DownloadEmailResponse> DownloadEmail(
+        [ActionParameter] EmailIdentifier emailId,
+        [ActionParameter] DownloadEmailRequest input)
     {
         var request = new RestRequest($"asset/v1/content/assets/{emailId.EmailId}", Method.Get);
         var entity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
@@ -103,7 +105,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         htmlContent = HtmlHelper.InjectHeadMetadata(htmlContent, entity.Id, BlackbirdMetadataIds.EmailId);
         htmlContent = ScriptHelper.ExtractVariables(htmlContent, "@subjectLine", BlackbirdMetadataIds.SubjectLine);
         htmlContent = ScriptHelper.WrapAmpScriptBlocks(htmlContent);
-        htmlContent = await ContentBlockHelper.ExpandContentBlocks(htmlContent, Client);
+        htmlContent = await ContentBlockHelper.ExpandContentBlocks(htmlContent, Client, input.ContentBlockIdsToIgnore);
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent));
         var file = await fileManagementClient.UploadAsync(stream, "application/html", $"{entity.Name}.html");
