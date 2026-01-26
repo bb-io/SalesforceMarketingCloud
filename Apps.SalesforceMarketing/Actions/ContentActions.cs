@@ -128,6 +128,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             html = ScriptHelper.UpsertScriptVariables(html, input.ScriptVariableNames, input.ScriptVariableValues);
 
         html = ScriptHelper.UnwrapAmpScriptBlocks(html);
+        html = await ContentBlockHelper.RestoreContentBlocks(html, Client, input.EmailName, input.CategoryId);
         html = ScriptHelper.RestoreVariables(html, BlackbirdMetadataIds.SubjectLine);
 
         string subject = 
@@ -137,7 +138,6 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
                 "Email subject is not found in the input file. Provide it in the input or include it in the file"
             );
         string? preheader = ExtractedPreheader;
-
         string emailName = string.IsNullOrEmpty(input.EmailName) ? input.Content.Name : input.EmailName;
 
         var request = new RestRequest("asset/v1/content/assets", Method.Post);

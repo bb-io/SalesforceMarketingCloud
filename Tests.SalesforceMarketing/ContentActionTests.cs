@@ -69,7 +69,10 @@ public class ContentActionTests : TestBase
         // Arrange
         var actions = new ContentActions(InvocationContext, FileManager);
         var emailId = new EmailIdentifier { EmailId = "932683" };
-        var request = new DownloadEmailRequest { ContentBlockIdsToIgnore = ["933760"] };
+        var request = new DownloadEmailRequest 
+        { 
+            //ContentBlockIdsToIgnore = ["933760"] 
+        };
 
         // Act
         var result = await actions.DownloadEmail(emailId, request);
@@ -87,7 +90,8 @@ public class ContentActionTests : TestBase
         var request = new UploadEmailRequest
         {
             Content = new FileReference { Name = "test.html" },
-            EmailName = "test ampscript update vars",
+            EmailName = "test content blocks",
+            CategoryId = "1326002",
             //ScriptVariableNames =   [   "chkey",           "@jobtype",         "test"                  ],
             //ScriptVariableValues =  [   "updatedChKey",    "updatedJobType",   "this will not update"  ]
         };

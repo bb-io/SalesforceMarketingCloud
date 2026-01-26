@@ -2,6 +2,7 @@
 using Apps.SalesforceMarketing.Constants;
 using Apps.SalesforceMarketing.Models;
 using Apps.SalesforceMarketing.Models.Entities.Asset;
+using HtmlAgilityPack;
 using RestSharp;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -21,14 +22,14 @@ public static class ContentBlockHelper
     );
 
     public static async Task<string> ExpandContentBlocks(
-        string html, 
-        SalesforceClient client, 
+        string html,
+        SalesforceClient client,
         IEnumerable<string>? blockIdsToIgnore)
     {
         var sb = new StringBuilder(html);
         bool foundNewBlocks = true;
         int depth = 0;
-        const int MaxDepth = 5; 
+        const int MaxDepth = 5;
         var skippedIds = new HashSet<string>(blockIdsToIgnore ?? []);
 
         while (foundNewBlocks && depth < MaxDepth)
@@ -41,13 +42,14 @@ public static class ContentBlockHelper
             {
                 var match = idMatches[i];
                 string blockId = match.Groups[1].Value;
-                if (skippedIds.Contains(blockId)) 
-                    continue;
+                if (skippedIds.Contains(blockId)) continue;
 
                 var blockEntity = await GetAssetById(client, blockId);
-
                 string blockContent = GetBlockContent(blockEntity);
-                string replacement = $@"<div id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">{blockContent}</div>";
+                string replacement = 
+                    $@"<{CustomHtmlTagNames.ContentBlock} id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">
+                    {blockContent}
+                    </{CustomHtmlTagNames.ContentBlock}>";
 
                 sb.Remove(match.Index, match.Length);
                 sb.Insert(match.Index, replacement);
@@ -64,18 +66,17 @@ public static class ContentBlockHelper
 
                 var pathParts = fullPath.Split('\\');
                 string blockName = pathParts.Last();
-                string? parentFolderName = pathParts.Length > 1
-                    ? pathParts[^2]
-                    : null;
+                string? parentFolderName = pathParts.Length > 1 ? pathParts[^2] : null;
 
                 var blockEntity = await GetAssetByName(client, blockName, parentFolderName);
-                if (blockEntity != null && skippedIds.Contains(blockEntity.Id))
-                    continue;
+                if (blockEntity != null && skippedIds.Contains(blockEntity.Id)) continue;
 
                 string blockContent = GetBlockContent(blockEntity);
                 string blockId = blockEntity?.Id ?? "0";
-
-                string replacement = $@"<div id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">{blockContent}</div>";
+                string replacement = 
+                    $@"<{CustomHtmlTagNames.ContentBlock} id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">
+                    {blockContent}
+                    </{CustomHtmlTagNames.ContentBlock}>";
 
                 sb.Remove(match.Index, match.Length);
                 sb.Insert(match.Index, replacement);
@@ -88,10 +89,84 @@ public static class ContentBlockHelper
         return sb.ToString();
     }
 
+    public static async Task<string> RestoreContentBlocks(
+        string html,
+        SalesforceClient client,
+        string? newEmailName,
+        string? categoryId)
+    {
+        var doc = new HtmlDocument();
+        doc.OptionFixNestedTags = true;
+        doc.LoadHtml(html);
+
+        var blockNodes = doc.DocumentNode.SelectNodes(
+            $"//{CustomHtmlTagNames.ContentBlock}[starts-with(@id, '{BlackbirdMetadataIds.ContentBlockId}-')]"
+        );
+
+        if (blockNodes == null) 
+            return html;
+
+        var sortedNodes = blockNodes
+            .OrderByDescending(node => node.Ancestors(CustomHtmlTagNames.ContentBlock).Count())
+            .ToList();
+
+        var uploadedBlocksCache = new Dictionary<string, string>();
+
+        foreach (var node in sortedNodes)
+        {
+            string originalId = node.Id.Replace($"{BlackbirdMetadataIds.ContentBlockId}-", "");
+            if (uploadedBlocksCache.TryGetValue(originalId, out string? existingNewAssetId))
+            {
+                ReplaceNodeWithReference(doc, node, existingNewAssetId);
+                continue;
+            }
+
+            string translatedContent = System.Net.WebUtility.HtmlDecode(node.InnerHtml.Trim());
+            string prefix = !string.IsNullOrEmpty(newEmailName) ? $"{newEmailName} - " : string.Empty;
+            string newBlockName = $"({prefix}Block {originalId} - {DateTime.UtcNow.Ticks})";
+            string newAssetId = await CreateNewAsset(client, newBlockName, translatedContent, categoryId);
+
+            uploadedBlocksCache[originalId] = newAssetId;
+            ReplaceNodeWithReference(doc, node, newAssetId);
+        }
+
+        return doc.DocumentNode.OuterHtml;
+    }
+
+    private static void ReplaceNodeWithReference(HtmlDocument doc, HtmlNode node, string assetId)
+    {
+        string newReference = $"%%=ContentBlockByID({assetId})=%%";
+        var textNode = doc.CreateTextNode(newReference);
+        node.ParentNode.ReplaceChild(textNode, node);
+    }
+
+    private static async Task<string> CreateNewAsset(
+        SalesforceClient client,
+        string name,
+        string content,
+        string? categoryId)
+    {
+        var request = new RestRequest("asset/v1/content/assets", Method.Post);
+        var body = new Dictionary<string, object>
+        {
+            { "name", name },
+            { "assetType", new { id = AssetTypeIds.HtmlBlock } },
+            { "views", new { html = new { content } } }
+        };
+
+        if (!string.IsNullOrEmpty(categoryId) && int.TryParse(categoryId, out int catId))
+            body.Add("category", new { id = catId });
+
+        request.AddJsonBody(body);
+
+        var response = await client.ExecuteWithErrorHandling<AssetEntity>(request);
+        return response.Id;
+    }
+
     private static string GetBlockContent(AssetEntity? entity)
     {
         if (entity == null) 
-            return "";
+            return string.Empty;
 
         if (!string.IsNullOrEmpty(entity.Content)) 
             return entity.Content;
@@ -100,7 +175,7 @@ public static class ContentBlockHelper
         if (!string.IsNullOrEmpty(entity.Views?.Text?.Content)) 
             return entity.Views.Text.Content;
 
-        return "";
+        return string.Empty;
     }
 
     private static async Task<AssetEntity?> GetAssetById(SalesforceClient client, string id)
@@ -124,7 +199,8 @@ public static class ContentBlockHelper
         {
             var match = response.Items.FirstOrDefault(a =>
                 a.Category != null &&
-                a.Category.Name.Equals(parentFolderName, StringComparison.OrdinalIgnoreCase));
+                a.Category.Name.Equals(parentFolderName, StringComparison.OrdinalIgnoreCase)
+            );
 
             return match ?? response.Items.First();
         }
