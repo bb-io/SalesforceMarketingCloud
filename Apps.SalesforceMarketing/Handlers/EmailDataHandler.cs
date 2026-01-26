@@ -27,6 +27,6 @@ public class EmailDataHandler(InvocationContext invocationContext)
 
         request.AddStringBody(body.ToString(), DataFormat.Json);
         var entities = await Client.ExecuteWithErrorHandling<ItemsWrapper<AssetEntity>>(request);
-        return entities.Items.Select(x => new DataSourceItem(x.Id, x.Name));
+        return entities.Items.Select(x => new DataSourceItem(x.Id, x.ToString()));
     }
 }

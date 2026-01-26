@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Common.Authentication;
+using Blackbird.Applications.Sdk.Common.Dynamic;
 
 namespace Tests.SalesforceMarketing.Base;
 
@@ -35,5 +36,12 @@ public class TestBase
     protected static void PrintResult(object result)
     {
         Console.WriteLine(JsonConvert.SerializeObject(result, Formatting.Indented));
+    }
+
+    protected static void PrintDataHandlerResult(IEnumerable<DataSourceItem> items)
+    {
+        Console.WriteLine($"Total: {items.Count()}");
+        foreach (var item in items)
+            Console.WriteLine($"{item.Value} - {item.DisplayName}");
     }
 }

@@ -45,4 +45,16 @@ public class AssetEntity
 
     [JsonProperty("content")]
     public string Content { get; set; }
+
+    public override string ToString()
+    {
+        string name = Name.Trim();
+        string id = Id;
+        string? category = Category.Name;
+
+        if (!string.IsNullOrEmpty(category))
+            return $"{name} (Folder: {category})";
+
+        return $"{name} (ID: {id})";
+    }
 }
