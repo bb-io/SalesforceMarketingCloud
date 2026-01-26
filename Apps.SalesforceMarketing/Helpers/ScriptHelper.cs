@@ -116,7 +116,7 @@ public static class ScriptHelper
         return sb.ToString();
     }
 
-    public static string UnwrapAmpScriptBlocks(string html)
+    public static string RestoreScriptBlocks(string html)
     {
         var scriptRegex = new Regex(
             $@"(?s)<script\s+[^>]*?id=""({BlackbirdMetadataIds.AmpScript}-\d+)""[^>]*?>(.*?)</script>",
@@ -140,7 +140,7 @@ public static class ScriptHelper
         return sb.ToString();
     }
 
-    public static string UpsertScriptVariables(string html, IEnumerable<string> varNames, IEnumerable<string> varValues)
+    public static string UpdateScriptVariables(string html, IEnumerable<string> varNames, IEnumerable<string> varValues)
     {
         if (string.IsNullOrWhiteSpace(html) || varNames == null || !varNames.Any())
             return html;

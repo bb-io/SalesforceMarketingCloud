@@ -97,15 +97,17 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         var entity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
 
         string htmlContent = entity.Views.Html.Content;
+
+        htmlContent = await ContentBlockHelper.ExpandContentBlocks(htmlContent, Client, input.ContentBlockIdsToIgnore);
+
         string? subjectLine = entity.Views.SubjectLine?.Content;
         string? preheader = entity.Views.Preheader?.Content;
-
         htmlContent = HtmlHelper.InjectDivMetadata(htmlContent, subjectLine, BlackbirdMetadataIds.SubjectLine);
         htmlContent = HtmlHelper.InjectDivMetadata(htmlContent, preheader, BlackbirdMetadataIds.Preheader);
         htmlContent = HtmlHelper.InjectHeadMetadata(htmlContent, entity.Id, BlackbirdMetadataIds.EmailId);
+
         htmlContent = ScriptHelper.ExtractVariables(htmlContent, "@subjectLine", BlackbirdMetadataIds.SubjectLine);
         htmlContent = ScriptHelper.WrapAmpScriptBlocks(htmlContent);
-        htmlContent = await ContentBlockHelper.ExpandContentBlocks(htmlContent, Client, input.ContentBlockIdsToIgnore);
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent));
         var file = await fileManagementClient.UploadAsync(stream, "application/html", $"{entity.Name}.html");
@@ -125,17 +127,18 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         html = htmlWithoutPreheader;
 
         if (input.ScriptVariableNames != null && input.ScriptVariableValues != null)
-            html = ScriptHelper.UpsertScriptVariables(html, input.ScriptVariableNames, input.ScriptVariableValues);
+            html = ScriptHelper.UpdateScriptVariables(html, input.ScriptVariableNames, input.ScriptVariableValues);
 
-        html = ScriptHelper.UnwrapAmpScriptBlocks(html);
-        html = await ContentBlockHelper.RestoreContentBlocks(html, Client, input.EmailName, input.CategoryId);
+        html = ScriptHelper.RestoreScriptBlocks(html);
         html = ScriptHelper.RestoreVariables(html, BlackbirdMetadataIds.SubjectLine);
+
+        html = await ContentBlockHelper.RestoreContentBlocks(html, Client, input.EmailName, input.CategoryId);
 
         string subject = 
             input.SubjectLine ?? 
             ExtractedSubject ?? 
             throw new PluginMisconfigurationException(
-                "Email subject is not found in the input file. Provide it in the input or include it in the file"
+                "Email subject line is not found in the input file. Provide it in the input or include it in the file"
             );
         string? preheader = ExtractedPreheader;
         string emailName = string.IsNullOrEmpty(input.EmailName) ? input.Content.Name : input.EmailName;
