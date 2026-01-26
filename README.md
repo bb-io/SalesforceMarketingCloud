@@ -13,10 +13,18 @@ Salesforce Marketing Cloud is a digital marketing platform that helps businesses
 Before you can connect, you need to have an active Salesforce Marketing Cloud account.
 
 Follow [this guide](https://docs.informatica.com/integration-cloud/data-integration-connectors/current-version/salesforce-marketing-cloud-connector/introduction-to-salesforce-marketing-cloud-connector/administration-of-salesforce-marketing-cloud-connector/retrieving-the-client-id-and-client-secret.html) to create an installed package. 
-You also need to enable these permissions: Assets (Read, Write), Saved Content (Read, Write). 
-Copy `Client ID` and `Client Secret`, as well as the domain hame (you only need to copy the specific part of it. Example: https://mc-123abc456def.auth.marketingcloudapis.com/ - your subdomain is `mc-123abc456def`). 
+to create an **Installed Package**.
 
-To retrieve `Member ID`, click at the top-right corner of the navigation bar, right next to your user name, and copy the MID value.
+While creating the package, make sure the following permissions are enabled:
+- Assets (Read, Write)
+- Saved Content (Read, Write)
+
+Once the package is created, copy the following values:
+- `Client ID`
+- `Client Secret`
+- Domain name (only the subdomain part). Example: https://mc-123abc456def.auth.marketingcloudapis.com/. Your subdomain is `mc-123abc456def`.
+
+To retrieve the `Member ID`, click your username in the top-right corner of the navigation bar and copy the MID value.
 
 ![MID](image/README/mid.png)
 
@@ -24,8 +32,8 @@ To retrieve `Member ID`, click at the top-right corner of the navigation bar, ri
 
 1. Name your connection for future reference e.g. 'My organization'.
 2. Paste the credentials you obtained earlier.
-3. Click Authorize connection and wait for the process to complete.
-4. Confirm that the connection has appeared and its status is Connected.
+3. Click **Authorize connection** and wait for the process to complete.
+4. Confirm that the connection has appeared and its status is **Connected**.
 
 ![connecting](image/README/connecting.png)
 

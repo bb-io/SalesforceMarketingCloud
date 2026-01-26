@@ -19,9 +19,10 @@ public class UploadEmailRequest
     [Display("Email name", Description = "Overrides the default file name")]
     public string? EmailName { get; set; }
 
-    [Display("Script variable names", Description = "List of AMPscript variable names (e.g. @Language or Language). Must match the order of values")]
+    [Display("Script variable names to update",
+        Description = "List of AMPScript variable names (e.g. @Language or Language). Must match the order of values")]
     public IEnumerable<string>? ScriptVariableNames { get; set; }
 
-    [Display("Script variable values", Description = "List of values corresponding to the variable names")]
+    [Display("Script variable values to update", Description = "List of values corresponding to the variable names")]
     public IEnumerable<string>? ScriptVariableValues { get; set; }
 }
