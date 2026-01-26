@@ -23,44 +23,61 @@ public static class ContentBlockHelper
     public static async Task<string> ExpandContentBlocks(string html, SalesforceClient client)
     {
         var sb = new StringBuilder(html);
+        bool foundNewBlocks = true;
+        int depth = 0;
+        const int MaxDepth = 5;
 
-        var idMatches = IdBlockRegex.Matches(html);
-        for (int i = idMatches.Count - 1; i >= 0; i--)
+        while (foundNewBlocks && depth < MaxDepth)
         {
-            var match = idMatches[i];
-            string blockId = match.Groups[1].Value;
+            foundNewBlocks = false;
+            string currentHtml = sb.ToString();
 
-            var blockEntity = await GetAssetById(client, blockId);
-            string blockHtml = GetBlockContent(blockEntity);
+            var idMatches = IdBlockRegex.Matches(currentHtml);
+            for (int i = idMatches.Count - 1; i >= 0; i--)
+            {
+                var match = idMatches[i];
+                string blockId = match.Groups[1].Value;
 
-            string replacement = $"<div id=\"{BlackbirdMetadataIds.ContentBlockId}-{blockId}\">{blockHtml}</div>";
+                var blockEntity = await GetAssetById(client, blockId);
 
-            sb.Remove(match.Index, match.Length);
-            sb.Insert(match.Index, replacement);
+                string blockContent = GetBlockContent(blockEntity);
+                string replacement = $@"<div id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">{blockContent}</div>";
+
+                sb.Remove(match.Index, match.Length);
+                sb.Insert(match.Index, replacement);
+                foundNewBlocks = true;
+            }
+
+            currentHtml = sb.ToString();
+            var nameMatches = NameBlockRegex.Matches(currentHtml);
+
+            for (int i = nameMatches.Count - 1; i >= 0; i--)
+            {
+                var match = nameMatches[i];
+                string fullPath = match.Groups[2].Value;
+
+                var pathParts = fullPath.Split('\\');
+                string blockName = pathParts.Last();
+                string? parentFolderName = pathParts.Length > 1
+                    ? pathParts[^2]
+                    : null;
+
+                var blockEntity = await GetAssetByName(client, blockName, parentFolderName);
+
+                string blockContent = GetBlockContent(blockEntity);
+                string blockId = blockEntity?.Id ?? "0";
+
+                string replacement = $@"<div id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">{blockContent}</div>";
+
+                sb.Remove(match.Index, match.Length);
+                sb.Insert(match.Index, replacement);
+                foundNewBlocks = true;
+            }
+
+            depth++;
         }
 
-        string intermediateHtml = sb.ToString();
-        var nameMatches = NameBlockRegex.Matches(intermediateHtml);
-        var sbName = new StringBuilder(intermediateHtml);
-
-        for (int i = nameMatches.Count - 1; i >= 0; i--)
-        {
-            var match = nameMatches[i]; 
-            
-            string fullPath = match.Groups[2].Value;
-            string blockName = fullPath.Split('\\').Last();
-
-            var blockEntity = await GetAssetByName(client, blockName);
-            string blockHtml = GetBlockContent(blockEntity);
-
-            string blockId = blockEntity?.Id ?? "0";
-            string replacement = $"<div id=\"{BlackbirdMetadataIds.ContentBlockId}-{blockId}\">{blockHtml}</div>";
-
-            sbName.Remove(match.Index, match.Length);
-            sbName.Insert(match.Index, replacement);
-        }
-
-        return sbName.ToString();
+        return sb.ToString();
     }
 
     private static string GetBlockContent(AssetEntity? entity)
@@ -84,12 +101,26 @@ public static class ContentBlockHelper
         return await client.ExecuteWithErrorHandling<AssetEntity>(request);
     }
 
-    private static async Task<AssetEntity?> GetAssetByName(SalesforceClient client, string name)
+    private static async Task<AssetEntity?> GetAssetByName(SalesforceClient client, string name, string? parentFolderName)
     {
+        string safeName = name.Replace("'", "''");
         var request = new RestRequest("asset/v1/content/assets", Method.Get);
-        request.AddQueryParameter("$filter", $"name eq '{name}'");
+        request.AddQueryParameter("$filter", $"name eq '{safeName}'");
 
         var response = await client.ExecuteWithErrorHandling<ItemsWrapper<AssetEntity>>(request);
-        return response.Items?.FirstOrDefault();
+
+        if (response.Items == null || response.Items.Count == 0) 
+            return null;
+
+        if (!string.IsNullOrEmpty(parentFolderName))
+        {
+            var match = response.Items.FirstOrDefault(a =>
+                a.Category != null &&
+                a.Category.Name.Equals(parentFolderName, StringComparison.OrdinalIgnoreCase));
+
+            return match ?? response.Items.First();
+        }
+
+        return response.Items.First();
     }
 }

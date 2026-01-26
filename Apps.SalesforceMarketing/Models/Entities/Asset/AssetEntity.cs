@@ -40,6 +40,9 @@ public class AssetEntity
     [JsonProperty("views")]
     public AssetViews Views { get; set; }
 
+    [JsonProperty("category")]
+    public AssetCategory Category { get; set; }
+
     [JsonProperty("content")]
     public string Content { get; set; }
 }
