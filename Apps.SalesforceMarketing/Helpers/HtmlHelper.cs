@@ -23,8 +23,6 @@ public static class HtmlHelper
         var newMeta = doc.CreateElement("meta");
         newMeta.SetAttributeValue("name", metadataId);
         newMeta.SetAttributeValue("content", content);
-
-        head.PrependChild(doc.CreateTextNode("\r\n    "));
         head.PrependChild(newMeta);
 
         return doc.DocumentNode.OuterHtml;
@@ -39,7 +37,7 @@ public static class HtmlHelper
         return metaNode?.GetAttributeValue("content", null);
     }
 
-    public static string InjectDivMetadata(string html, string? content, string divId)
+    public static string InjectDiv(string html, string? content, string divId)
     {
         if (string.IsNullOrEmpty(content))
             return html;
@@ -51,14 +49,12 @@ public static class HtmlHelper
         var div = doc.CreateElement("div");
         div.Id = divId;
         div.InnerHtml = content;
-
-        rootNode.PrependChild(doc.CreateTextNode("\r\n    "));
         rootNode.PrependChild(div);
-        rootNode.PrependChild(doc.CreateTextNode("\r\n    "));
+
         return doc.DocumentNode.OuterHtml;
     }
 
-    public static (string UpdatedHtml, string? Content) ExtractAndDeleteDivMetadata(string html, string divId)
+    public static (string UpdatedHtml, string? Content) ExtractAndDeleteDiv(string html, string divId)
     {
         var doc = new HtmlDocument();
         doc.LoadHtml(html);

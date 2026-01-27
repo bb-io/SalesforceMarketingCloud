@@ -25,7 +25,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         input.Validate();
 
         var assetTypes = new[] {
-            "htmlemail", "templatebasedemail", "textblock", 
+            "htmlemail", "textblock", 
             "freeformblock", "htmlblock",
         };
 
@@ -74,10 +74,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         var body = new
         {
             name = input.Name,
-            assetType = new
-            {
-                id = int.Parse(input.AssetTypeId),
-            },
+            assetType = new { id = int.Parse(input.AssetTypeId) },
             content = finalContent,
             category = !string.IsNullOrEmpty(input.CategoryId) ? new { id = int.Parse(input.CategoryId) } : null
         };
@@ -96,14 +93,21 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         var request = new RestRequest($"asset/v1/content/assets/{emailId.EmailId}", Method.Get);
         var entity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
 
-        string htmlContent = entity.Views.Html.Content;
+        if (entity.Views?.Html == null)
+        {
+            throw new PluginMisconfigurationException(
+                $"The asset '{entity.Name}' does not contain valid HTML content. " +
+                "Please ensure you have selected a valid 'Content Builder Email' and not a Template, Content Block or Legacy Email"
+            );
+        }
 
+        string htmlContent = entity.Views.Html.Content;
         htmlContent = await ContentBlockHelper.ExpandContentBlocks(htmlContent, Client, input.ContentBlockIdsToIgnore);
 
         string? subjectLine = entity.Views.SubjectLine?.Content;
         string? preheader = entity.Views.Preheader?.Content;
-        htmlContent = HtmlHelper.InjectDivMetadata(htmlContent, subjectLine, BlackbirdMetadataIds.SubjectLine);
-        htmlContent = HtmlHelper.InjectDivMetadata(htmlContent, preheader, BlackbirdMetadataIds.Preheader);
+        htmlContent = HtmlHelper.InjectDiv(htmlContent, subjectLine, BlackbirdMetadataIds.SubjectLine);
+        htmlContent = HtmlHelper.InjectDiv(htmlContent, preheader, BlackbirdMetadataIds.Preheader);
         htmlContent = HtmlHelper.InjectHeadMetadata(htmlContent, entity.Id, BlackbirdMetadataIds.EmailId);
 
         htmlContent = ScriptHelper.ExtractVariables(htmlContent, "@subjectLine", BlackbirdMetadataIds.SubjectLine);
@@ -120,10 +124,10 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
     {
         string html = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
 
-        var (htmlWithoutSubject, ExtractedSubject) = HtmlHelper.ExtractAndDeleteDivMetadata(html, BlackbirdMetadataIds.SubjectLine);
+        var (htmlWithoutSubject, ExtractedSubject) = HtmlHelper.ExtractAndDeleteDiv(html, BlackbirdMetadataIds.SubjectLine);
         html = htmlWithoutSubject;
 
-        var (htmlWithoutPreheader, ExtractedPreheader) = HtmlHelper.ExtractAndDeleteDivMetadata(html, BlackbirdMetadataIds.Preheader);
+        var (htmlWithoutPreheader, ExtractedPreheader) = HtmlHelper.ExtractAndDeleteDiv(html, BlackbirdMetadataIds.Preheader);
         html = htmlWithoutPreheader;
 
         if (input.ScriptVariableNames != null && input.ScriptVariableValues != null)

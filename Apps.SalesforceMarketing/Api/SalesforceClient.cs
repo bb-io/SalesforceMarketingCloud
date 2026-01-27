@@ -131,12 +131,16 @@ public class SalesforceClient : BlackBirdRestClient
 
     protected override Exception ConfigureErrorException(RestResponse response)
     {
-        if (response.Content == null)
-            throw new PluginApplicationException("Error - no content received from the server");
+        if (string.IsNullOrEmpty(response.Content))
+        {
+            if (string.IsNullOrEmpty(response.ErrorMessage))
+                throw new PluginApplicationException($"Request failed with {(int)response.StatusCode} ({response.StatusDescription})");
+            else throw new PluginApplicationException($"Error - {response.ErrorMessage}");
+        }
 
         var error = JsonConvert.DeserializeObject<ErrorResponse>(response.Content);
         if (error == null || error.Message == null)
-            throw new PluginApplicationException("Unknown error");
+            throw new PluginApplicationException($"Unknown error - status {response.StatusCode}. {response.Content}");
 
         string errorMessage = error.Message;
         if (error.ValidationErrors?.Count > 0)
