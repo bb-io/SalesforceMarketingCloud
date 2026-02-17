@@ -16,7 +16,8 @@ public class ContentActionTests : TestBase
         var actions = new ContentActions(InvocationContext, FileManager);
         var input = new SearchContentRequest
         {
-            CreatedFromDate = new DateTime(2026, 1, 12),
+            IncludeSubfolders = true,
+            CategoryId = "1325630"
         };
 
         // Act
