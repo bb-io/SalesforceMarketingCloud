@@ -1,6 +1,7 @@
 using Apps.SalesforceMarketing.Constants;
 using Apps.SalesforceMarketing.Helpers;
 using Apps.SalesforceMarketing.Models.Entities.Asset;
+using Apps.SalesforceMarketing.Models.Entities.Category;
 using Apps.SalesforceMarketing.Models.Identifiers;
 using Apps.SalesforceMarketing.Models.Request.Content;
 using Apps.SalesforceMarketing.Models.Response.Content;
@@ -23,11 +24,24 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
     public async Task<SearchContentResponse> SearchContent([ActionParameter] SearchContentRequest input)
     {
         input.Validate();
+        input.ApplyDefaultValues();
 
         var assetTypes = new[] {
             "htmlemail", "textblock", 
             "freeformblock", "htmlblock",
-        };
+        }; 
+        
+        var categoryIds = new List<string>();
+        if (!string.IsNullOrEmpty(input.CategoryId))
+        {
+            categoryIds.Add(input.CategoryId);
+
+            if (input.IncludeSubfolders == true)
+            {
+                var subCategories = await GetSubCategories(input.CategoryId);
+                categoryIds.AddRange(subCategories);
+            }
+        }
 
         var query = new AssetFilterBuilder()
             .WhereIn("assetType.name", assetTypes)
@@ -35,7 +49,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             .WhereLessOrEqual("createdDate", input.CreatedToDate)
             .WhereGreaterOrEqual("modifiedDate", input.UpdatedFromDate)
             .WhereLessOrEqual("modifiedDate", input.UpdatedToDate)
-            .WhereEquals("category.id", input.CategoryId)
+            .WhereIn("category.id", categoryIds)
             .Build();
 
         var request = new RestRequest("asset/v1/content/assets/query", Method.Post);
@@ -164,5 +178,34 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
 
         var createdEntity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
         return new GetContentResponse(createdEntity);
+    }
+
+    private async Task<List<string>> GetSubCategories(string parentId)
+    {
+        List<string> folderIds = [];
+
+        var foldersToProcess = new Queue<string>();
+        foldersToProcess.Enqueue(parentId);
+
+        while (foldersToProcess.Count > 0)
+        {
+            var currentParentId = foldersToProcess.Dequeue();
+
+            var categoryRequest = new RestRequest("asset/v1/content/categories", Method.Get);
+            categoryRequest.AddQueryParameter("$filter", $"parentId eq {currentParentId}");
+
+            var children = await Client.PaginateGet<CategoryEntity>(categoryRequest);
+
+            if (children != null)
+            {
+                foreach (var child in children)
+                {
+                    folderIds.Add(child.Id);
+                    foldersToProcess.Enqueue(child.Id);
+                }
+            }
+        }
+
+        return folderIds;
     }
 }

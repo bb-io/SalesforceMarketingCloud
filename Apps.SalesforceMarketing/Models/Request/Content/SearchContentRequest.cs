@@ -22,6 +22,10 @@ public class SearchContentRequest
     [Display("Updated to")]
     public DateTime? UpdatedToDate { get; set; }
 
+    [Display("Include subfolders", 
+        Description = "Searches for content in subfolders of the specified category ID. False by default")]
+    public bool? IncludeSubfolders { get; set; }
+
     public void Validate()
     {
         if (CreatedFromDate.HasValue && CreatedToDate.HasValue && CreatedFromDate > CreatedToDate)
@@ -29,5 +33,10 @@ public class SearchContentRequest
 
         if (UpdatedFromDate.HasValue && UpdatedToDate.HasValue && UpdatedFromDate > UpdatedToDate)
             throw new PluginMisconfigurationException("'Updated from' can't be after the 'Updated to' date");
+    }
+
+    public void ApplyDefaultValues()
+    {
+        IncludeSubfolders ??= false;
     }
 }
