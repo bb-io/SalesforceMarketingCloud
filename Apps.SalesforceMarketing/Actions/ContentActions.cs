@@ -50,6 +50,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             .WhereGreaterOrEqual("modifiedDate", input.UpdatedFromDate)
             .WhereLessOrEqual("modifiedDate", input.UpdatedToDate)
             .WhereIn("category.id", categoryIds)
+            .WhereContains("name", input.NameContains)
             .Build();
 
         var request = new RestRequest("asset/v1/content/assets/query", Method.Post);
@@ -60,6 +61,19 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
 
         request.AddStringBody(body.ToString(), DataFormat.Json);
         var entities = await Client.PaginatePost<AssetEntity>(request);
+
+        var excludeTokens = (input.NameDoesntContain ?? Enumerable.Empty<string>())
+           .Select(x => x?.Trim())
+           .Where(x => !string.IsNullOrWhiteSpace(x))
+           .Distinct(StringComparer.OrdinalIgnoreCase)
+           .ToArray();
+
+        if (excludeTokens.Length > 0)
+        {
+            entities = entities
+                .Where(e =>!excludeTokens.Any(token =>(e.Name ?? string.Empty).Contains(token!, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+        }
 
         var wrappedItems = entities.Select(x => new GetContentResponse(x)).ToArray();
         return new SearchContentResponse(wrappedItems);

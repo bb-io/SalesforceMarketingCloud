@@ -26,6 +26,14 @@ public class SearchContentRequest
         Description = "Searches for content in subfolders of the specified category ID. False by default")]
     public bool? IncludeSubfolders { get; set; }
 
+    [Display("Name contains",
+        Description = "Return only assets whose name contains this value (case-insensitive).")]
+    public string? NameContains { get; set; }
+
+    [Display("Name doesn't contain",
+        Description = "Exclude assets whose name contains any of these values (case-insensitive).")]
+    public IEnumerable<string>? NameDoesntContain { get; set; }
+
     public void Validate()
     {
         if (CreatedFromDate.HasValue && CreatedToDate.HasValue && CreatedFromDate > CreatedToDate)
