@@ -50,7 +50,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             .WhereGreaterOrEqual("modifiedDate", input.UpdatedFromDate)
             .WhereLessOrEqual("modifiedDate", input.UpdatedToDate)
             .WhereIn("category.id", categoryIds)
-            .WhereContains("name", input.NameContains)
+            .WhereMustContains("name", input.NameContains)
             .Build();
 
         var request = new RestRequest("asset/v1/content/assets/query", Method.Post);

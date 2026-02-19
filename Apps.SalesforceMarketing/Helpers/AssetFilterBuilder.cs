@@ -38,9 +38,9 @@ public class AssetFilterBuilder
         return AddCondition(property, "like", value);
     }
 
-    public AssetFilterBuilder WhereContains(string property, string? value)
+    public AssetFilterBuilder WhereMustContains(string property, string? value)
     {
-        return AddCondition(property, "contains", value);
+        return AddCondition(property, "mustContain", value);
     }
 
     public JObject? Build()
