@@ -8,12 +8,12 @@ public class AssetFilterBuilder
 
     public AssetFilterBuilder WhereEquals(string property, string? value)
     {
-        return AddCondition(property, "equals", value); //should not be "equal" as per documentation?
+        return AddCondition(property, "equals", value);
     }
 
     public AssetFilterBuilder WhereNotEquals(string property, string? value)
     {
-        return AddCondition(property, "notEquals", value); //should not be "notEqual" as per documentation?
+        return AddCondition(property, "notEquals", value);
     }
 
     public AssetFilterBuilder WhereGreaterOrEqual(string property, DateTime? value)
