@@ -38,6 +38,11 @@ public class AssetFilterBuilder
         return AddCondition(property, "like", value);
     }
 
+    public AssetFilterBuilder WhereMustContains(string property, string? value)
+    {
+        return AddCondition(property, "mustContain", value);
+    }
+
     public JObject? Build()
     {
         if (_filters.Count == 0) 

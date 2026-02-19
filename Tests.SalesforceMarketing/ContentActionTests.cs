@@ -16,8 +16,10 @@ public class ContentActionTests : TestBase
         var actions = new ContentActions(InvocationContext, FileManager);
         var input = new SearchContentRequest
         {
-            IncludeSubfolders = true,
-            CategoryId = "1325630"
+            //IncludeSubfolders = true,
+            //CategoryId = "1325630"
+            NameContains = "Unsub",
+           NameDoesntContain = ["link"]
         };
 
         // Act
@@ -34,7 +36,7 @@ public class ContentActionTests : TestBase
     {
         // Arrange
         var actions = new ContentActions(InvocationContext, FileManager);
-        var emailId = new EmailIdentifier { EmailId = "932683" };
+        var emailId = new EmailIdentifier { EmailId = "705627" };
 
         // Act
         var result = await actions.GetEmailDetails(emailId);

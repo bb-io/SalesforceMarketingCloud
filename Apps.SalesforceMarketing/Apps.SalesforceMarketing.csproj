@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <Product>Salesforce Marketing Cloud [Beta]</Product>
         <Description>Salesforce Marketing Cloud is a digital marketing platform designed to streamline and automate marketing efforts across multiple channels, including email, social media, SMS, mobile apps and websites</Description>
-        <Version>1.0.1</Version>
+        <Version>1.0.2</Version>
         <AssemblyName>Apps.SalesforceMarketing</AssemblyName>
     </PropertyGroup>
 
