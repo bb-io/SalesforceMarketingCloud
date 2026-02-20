@@ -19,7 +19,7 @@ public class ContentActionTests : TestBase
             //IncludeSubfolders = true,
             //CategoryId = "1325630"
             NameContains = "Unsub",
-           NameDoesntContain = ["link"]
+            NameDoesntContain = ["link"]
         };
 
         // Act
@@ -71,7 +71,7 @@ public class ContentActionTests : TestBase
     {
         // Arrange
         var actions = new ContentActions(InvocationContext, FileManager);
-        var emailId = new EmailIdentifier { EmailId = "932683" };
+        var emailId = new EmailIdentifier { EmailId = "940892" };
         var request = new DownloadEmailRequest 
         { 
             //ContentBlockIdsToIgnore = ["933760"] 

@@ -2,8 +2,10 @@
 using Apps.SalesforceMarketing.Constants;
 using Apps.SalesforceMarketing.Models;
 using Apps.SalesforceMarketing.Models.Entities.Asset;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using HtmlAgilityPack;
 using RestSharp;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -42,9 +44,11 @@ public static class ContentBlockHelper
             {
                 var match = idMatches[i];
                 string blockId = match.Groups[1].Value;
-                if (skippedIds.Contains(blockId)) continue;
+                if (skippedIds.Contains(blockId)) 
+                    continue;
 
-                var blockEntity = await GetAssetById(client, blockId);
+                var blockEntity = await GetAssetById(client, blockId)
+                    ?? throw new PluginMisconfigurationException($"The block with ID {blockId} was not found");
                 string blockContent = GetBlockContent(blockEntity);
                 string replacement = 
                     $@"<{CustomHtmlTagNames.ContentBlock} id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">
@@ -68,8 +72,10 @@ public static class ContentBlockHelper
                 string blockName = pathParts.Last();
                 string? parentFolderName = pathParts.Length > 1 ? pathParts[^2] : null;
 
-                var blockEntity = await GetAssetByName(client, blockName, parentFolderName);
-                if (blockEntity != null && skippedIds.Contains(blockEntity.Id)) continue;
+                var blockEntity = await GetAssetByName(client, blockName, parentFolderName) 
+                    ?? throw new PluginMisconfigurationException($"The block with name '{blockName}' was not found");
+                if (skippedIds.Contains(blockEntity.Id)) 
+                    continue;
 
                 string blockContent = GetBlockContent(blockEntity);
                 string blockId = blockEntity?.Id ?? "0";
@@ -121,7 +127,7 @@ public static class ContentBlockHelper
                 continue;
             }
 
-            string translatedContent = System.Net.WebUtility.HtmlDecode(node.InnerHtml.Trim());
+            string translatedContent = WebUtility.HtmlDecode(node.InnerHtml.Trim());
             string prefix = !string.IsNullOrEmpty(newEmailName) ? $"{newEmailName} - " : string.Empty;
             string newBlockName = $"({prefix}Block {originalId} - {DateTime.UtcNow.Ticks})";
             string newAssetId = await CreateNewAsset(client, newBlockName, translatedContent, categoryId);
@@ -180,8 +186,11 @@ public static class ContentBlockHelper
 
     private static async Task<AssetEntity?> GetAssetById(SalesforceClient client, string id)
     {
-        var request = new RestRequest($"asset/v1/content/assets/{id}", Method.Get);
-        return await client.ExecuteWithErrorHandling<AssetEntity>(request);
+        var request = new RestRequest("asset/v1/content/assets", Method.Get);
+        request.AddQueryParameter("$filter", $"id eq {id}");
+
+        var response = await client.ExecuteWithErrorHandling<ItemsWrapper<AssetEntity>>(request);
+        return response.Items.FirstOrDefault();
     }
 
     private static async Task<AssetEntity?> GetAssetByName(SalesforceClient client, string name, string? parentFolderName)
@@ -191,8 +200,7 @@ public static class ContentBlockHelper
         request.AddQueryParameter("$filter", $"name eq '{safeName}'");
 
         var response = await client.ExecuteWithErrorHandling<ItemsWrapper<AssetEntity>>(request);
-
-        if (response.Items == null || response.Items.Count == 0) 
+        if (response.Items == null || response.Items.Count == 0)
             return null;
 
         if (!string.IsNullOrEmpty(parentFolderName))
