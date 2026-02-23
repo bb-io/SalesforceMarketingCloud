@@ -2,8 +2,10 @@
 
 public static class AssetTypeIds
 {
-    public const int FreeformBlock = 195;
-    public const int TextBlock = 196;
-    public const int HtmlBlock = 197;
-    public const int HtmlEmail = 208;
+    public const string FreeformBlock = "195";
+    public const string TextBlock = "196";
+    public const string HtmlBlock = "197";
+    public const string HtmlEmail = "208";
+
+    public static readonly List<string> SupportedAssetTypes = [FreeformBlock, TextBlock, HtmlBlock, HtmlEmail];
 }
