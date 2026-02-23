@@ -4,15 +4,16 @@ using Apps.SalesforceMarketing.Constants;
 
 namespace Apps.SalesforceMarketing.Handlers.Static;
 
-public class ContentBlockTypeDataHandler : IStaticDataSourceItemHandler
+public class ContentTypeDataHandler : IStaticDataSourceItemHandler
 {
     public IEnumerable<DataSourceItem> GetData()
     {
-        return 
+        return
         [
-            new DataSourceItem(AssetTypeIds.FreeformBlock, "Freeform Block"),
+            new DataSourceItem(AssetTypeIds.HtmlEmail, "HTML Email"),
             new DataSourceItem(AssetTypeIds.TextBlock, "Text Block"),
-            new DataSourceItem(AssetTypeIds.HtmlBlock, "HTML Block")
+            new DataSourceItem(AssetTypeIds.FreeformBlock, "Freeform Block"),
+            new DataSourceItem(AssetTypeIds.HtmlBlock, "HTML Block"),
         ];
     }
 }

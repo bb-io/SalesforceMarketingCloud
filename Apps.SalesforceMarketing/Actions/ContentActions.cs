@@ -26,11 +26,6 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         input.Validate();
         input.ApplyDefaultValues();
 
-        var assetTypes = new[] {
-            "htmlemail", "textblock", 
-            "freeformblock", "htmlblock",
-        }; 
-        
         var categoryIds = new List<string>();
         if (!string.IsNullOrEmpty(input.CategoryId))
         {
@@ -44,7 +39,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         }
 
         var query = new AssetFilterBuilder()
-            .WhereIn("assetType.name", assetTypes)
+            .WhereIn("assetType.id", input.ContentTypes)
             .WhereGreaterOrEqual("createdDate", input.CreatedFromDate)
             .WhereLessOrEqual("createdDate", input.CreatedToDate)
             .WhereGreaterOrEqual("modifiedDate", input.UpdatedFromDate)

@@ -3,6 +3,7 @@ using Apps.SalesforceMarketing.Actions;
 using Apps.SalesforceMarketing.Models.Identifiers;
 using Apps.SalesforceMarketing.Models.Request.Content;
 using Blackbird.Applications.Sdk.Common.Files;
+using Apps.SalesforceMarketing.Constants;
 
 namespace Tests.SalesforceMarketing;
 
@@ -16,10 +17,9 @@ public class ContentActionTests : TestBase
         var actions = new ContentActions(InvocationContext, FileManager);
         var input = new SearchContentRequest
         {
-            //IncludeSubfolders = true,
-            //CategoryId = "1325630"
-            NameContains = "Unsub",
-            NameDoesntContain = ["link"]
+            IncludeSubfolders = true,
+            CategoryId = "1326822",
+            ContentTypes = [AssetTypeIds.HtmlEmail]
         };
 
         // Act
@@ -73,7 +73,7 @@ public class ContentActionTests : TestBase
         var actions = new ContentActions(InvocationContext, FileManager);
         var emailId = new EmailIdentifier { EmailId = "940892" };
         var request = new DownloadEmailRequest 
-        { 
+        {
             //ContentBlockIdsToIgnore = ["933760"] 
         };
 
