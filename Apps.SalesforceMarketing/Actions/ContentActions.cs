@@ -3,6 +3,7 @@ using Apps.SalesforceMarketing.Helpers;
 using Apps.SalesforceMarketing.Models.Entities.Asset;
 using Apps.SalesforceMarketing.Models.Entities.Category;
 using Apps.SalesforceMarketing.Models.Identifiers;
+using Apps.SalesforceMarketing.Models.Identifiers.Optional;
 using Apps.SalesforceMarketing.Models.Request.Content;
 using Apps.SalesforceMarketing.Models.Response.Content;
 using Blackbird.Applications.Sdk.Common;
@@ -187,6 +188,50 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
 
         var createdEntity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
         return new GetContentResponse(createdEntity);
+    }
+
+    [Action("Update email", Description = "Update existing email from file")]
+    public async Task<GetContentResponse> UpdateEmail(
+        [ActionParameter] OptionalEmailIdentifier emailInput,
+        [ActionParameter] UpdateEmailRequest input)
+    {
+        string html = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
+
+        string emailId =
+            HtmlHelper.ExtractHeadMetadata(html, BlackbirdMetadataIds.EmailId) ??
+            emailInput.EmailId ??
+            throw new PluginMisconfigurationException(
+                "Email ID is not found in the input file. Provide it in the input or include it in the file"
+            );
+
+        var (htmlWithoutSubject, ExtractedSubject) = HtmlHelper.ExtractAndDeleteDiv(html, BlackbirdMetadataIds.SubjectLine);
+        html = htmlWithoutSubject;
+
+        var (htmlWithoutPreheader, ExtractedPreheader) = HtmlHelper.ExtractAndDeleteDiv(html, BlackbirdMetadataIds.Preheader);
+        html = htmlWithoutPreheader;
+
+        html = ScriptHelper.RestoreScriptBlocks(html);
+        html = ScriptHelper.RestoreVariables(html, BlackbirdMetadataIds.SubjectLine);
+
+        html = await ContentBlockHelper.UpdateContentBlocks(html, Client);
+
+        string? subjectLine = string.IsNullOrEmpty(input.SubjectLine) ? ExtractedSubject : input.SubjectLine;
+
+        var request = new RestRequest($"asset/v1/content/assets/{emailId}", Method.Patch);
+        
+        var views = new Dictionary<string, object> { { "html", new { content = html } } };
+
+        if (!string.IsNullOrEmpty(subjectLine))
+            views.Add("subjectline", new { content = subjectLine });
+
+        if (!string.IsNullOrEmpty(ExtractedPreheader))
+            views.Add("preheader", new { content = ExtractedPreheader });
+
+        var body = new { views };
+        request.AddJsonBody(body);
+
+        var updatedEntity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
+        return new GetContentResponse(updatedEntity);
     }
 
     private async Task<List<string>> GetSubCategories(string parentId)

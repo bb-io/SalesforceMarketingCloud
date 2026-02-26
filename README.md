@@ -46,6 +46,7 @@ To retrieve the `Member ID`, click your username in the top-right corner of the 
 - **Create content block**. Create a new content block.
 - **Download email**. Download email content.
 - **Create new email**. Create new email from file.
+- **Update email**. Update existing email from file.
 
 ## Feedback
 
