@@ -139,6 +139,46 @@ public static class ContentBlockHelper
         return doc.DocumentNode.OuterHtml;
     }
 
+    public static async Task<string> UpdateContentBlocks(
+        string html,
+        SalesforceClient client)
+    {
+        var doc = new HtmlDocument();
+        doc.OptionFixNestedTags = true;
+        doc.LoadHtml(html);
+
+        var blockNodes = doc.DocumentNode.SelectNodes(
+            $"//{CustomHtmlTagNames.ContentBlock}[starts-with(@id, '{BlackbirdMetadataIds.ContentBlockId}-')]"
+        );
+
+        if (blockNodes == null)
+            return html;
+
+        var sortedNodes = blockNodes
+            .OrderByDescending(node => node.Ancestors(CustomHtmlTagNames.ContentBlock).Count())
+            .ToList();
+
+        var updatedBlocksCache = new HashSet<string>();
+        foreach (var node in sortedNodes)
+        {
+            string assetId = node.Id.Replace($"{BlackbirdMetadataIds.ContentBlockId}-", "");
+
+            if (updatedBlocksCache.Contains(assetId))
+            {
+                ReplaceNodeWithReference(doc, node, assetId);
+                continue;
+            }
+
+            string translatedContent = WebUtility.HtmlDecode(node.InnerHtml.Trim());
+            await UpdateAsset(client, assetId, translatedContent);
+
+            updatedBlocksCache.Add(assetId);
+            ReplaceNodeWithReference(doc, node, assetId);
+        }
+
+        return doc.DocumentNode.OuterHtml;
+    }
+
     private static void ReplaceNodeWithReference(HtmlDocument doc, HtmlNode node, string assetId)
     {
         string newReference = $"%%=ContentBlockByID({assetId})=%%";
@@ -167,6 +207,24 @@ public static class ContentBlockHelper
 
         var response = await client.ExecuteWithErrorHandling<AssetEntity>(request);
         return response.Id;
+    }
+
+    private static async Task UpdateAsset(
+        SalesforceClient client,
+        string assetId,
+        string content)
+    {
+        var request = new RestRequest($"asset/v1/content/assets/{assetId}", Method.Patch);
+
+        var body = new Dictionary<string, object>
+        {   
+            { "content", content },
+            { "views", new { html = new { content } } }
+        };
+
+        request.AddJsonBody(body);
+
+        await client.ExecuteWithErrorHandling<AssetEntity>(request);
     }
 
     private static string GetBlockContent(AssetEntity? entity)

@@ -4,6 +4,7 @@ using Apps.SalesforceMarketing.Models.Identifiers;
 using Apps.SalesforceMarketing.Models.Request.Content;
 using Blackbird.Applications.Sdk.Common.Files;
 using Apps.SalesforceMarketing.Constants;
+using Apps.SalesforceMarketing.Models.Identifiers.Optional;
 
 namespace Tests.SalesforceMarketing;
 
@@ -17,9 +18,9 @@ public class ContentActionTests : TestBase
         var actions = new ContentActions(InvocationContext, FileManager);
         var input = new SearchContentRequest
         {
+            CreatedFromDate = DateTime.UtcNow - TimeSpan.FromHours(1),
             IncludeSubfolders = true,
-            CategoryId = "1326822",
-            ContentTypes = [AssetTypeIds.HtmlEmail]
+            CategoryId = "1325630",
         };
 
         // Act
@@ -101,6 +102,26 @@ public class ContentActionTests : TestBase
 
         // Act
         var result = await actions.CreateEmail(request);
+
+        // Assert
+        PrintResult(result);
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
+    public async Task UpdateEmail_ReturnsUpdatedEmail()
+    {
+        // Arrange
+        var actions = new ContentActions(InvocationContext, FileManager);
+        var emailId = new OptionalEmailIdentifier { EmailId = "942702" };
+        var input = new UpdateEmailRequest
+        {
+            Content = new FileReference { Name = "test.html" },
+            SubjectLine = "overwritten"
+        };
+
+        // Act
+        var result = await actions.UpdateEmail(emailId, input);
 
         // Assert
         PrintResult(result);

@@ -1,8 +1,8 @@
 using Apps.SalesforceMarketing.Constants;
 using Apps.SalesforceMarketing.Helpers;
 using Apps.SalesforceMarketing.Models.Entities.Asset;
-using Apps.SalesforceMarketing.Models.Entities.Category;
 using Apps.SalesforceMarketing.Models.Identifiers;
+using Apps.SalesforceMarketing.Models.Identifiers.Optional;
 using Apps.SalesforceMarketing.Models.Request.Content;
 using Apps.SalesforceMarketing.Models.Response.Content;
 using Blackbird.Applications.Sdk.Common;
@@ -23,20 +23,13 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
     [Action("Search content", Description = "Search content (emails and content blocks) with specific criteria")]
     public async Task<SearchContentResponse> SearchContent([ActionParameter] SearchContentRequest input)
     {
-        input.Validate();
-        input.ApplyDefaultValues();
+        input.Validate().ApplyDefaultValues();
 
-        var categoryIds = new List<string>();
-        if (!string.IsNullOrEmpty(input.CategoryId))
-        {
-            categoryIds.Add(input.CategoryId);
-
-            if (input.IncludeSubfolders == true)
-            {
-                var subCategories = await GetSubCategories(input.CategoryId);
-                categoryIds.AddRange(subCategories);
-            }
-        }
+        var categoryIds = await CategoryHelper.GetCategoryIds(
+            Client,
+            input.CategoryId,
+            input.IncludeSubfolders
+        );
 
         var query = new AssetFilterBuilder()
             .WhereIn("assetType.id", input.ContentTypes)
@@ -55,20 +48,9 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             body["query"] = query;
 
         request.AddStringBody(body.ToString(), DataFormat.Json);
+
         var entities = await Client.PaginatePost<AssetEntity>(request);
-
-        var excludeTokens = (input.NameDoesntContain ?? Enumerable.Empty<string>())
-           .Select(x => x?.Trim())
-           .Where(x => !string.IsNullOrWhiteSpace(x))
-           .Distinct(StringComparer.OrdinalIgnoreCase)
-           .ToArray();
-
-        if (excludeTokens.Length > 0)
-        {
-            entities = entities
-                .Where(e =>!excludeTokens.Any(token =>(e.Name ?? string.Empty).Contains(token!, StringComparison.OrdinalIgnoreCase)))
-                .ToList();
-        }
+        entities = entities.FilterExcludedNames(input.NameDoesntContain, e => e.Name);
 
         var wrappedItems = entities.Select(x => new GetContentResponse(x)).ToArray();
         return new SearchContentResponse(wrappedItems);
@@ -189,32 +171,47 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         return new GetContentResponse(createdEntity);
     }
 
-    private async Task<List<string>> GetSubCategories(string parentId)
+    [Action("Update email", Description = "Update existing email from file")]
+    public async Task<GetContentResponse> UpdateEmail(
+        [ActionParameter] OptionalEmailIdentifier emailInput,
+        [ActionParameter] UpdateEmailRequest input)
     {
-        List<string> folderIds = [];
+        string html = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
 
-        var foldersToProcess = new Queue<string>();
-        foldersToProcess.Enqueue(parentId);
+        string emailId =
+            HtmlHelper.ExtractHeadMetadata(html, BlackbirdMetadataIds.EmailId) ??
+            emailInput.EmailId ??
+            throw new PluginMisconfigurationException(
+                "Email ID is not found in the input file. Provide it in the input or include it in the file"
+            );
 
-        while (foldersToProcess.Count > 0)
-        {
-            var currentParentId = foldersToProcess.Dequeue();
+        var (htmlWithoutSubject, ExtractedSubject) = HtmlHelper.ExtractAndDeleteDiv(html, BlackbirdMetadataIds.SubjectLine);
+        html = htmlWithoutSubject;
 
-            var categoryRequest = new RestRequest("asset/v1/content/categories", Method.Get);
-            categoryRequest.AddQueryParameter("$filter", $"parentId eq {currentParentId}");
+        var (htmlWithoutPreheader, ExtractedPreheader) = HtmlHelper.ExtractAndDeleteDiv(html, BlackbirdMetadataIds.Preheader);
+        html = htmlWithoutPreheader;
 
-            var children = await Client.PaginateGet<CategoryEntity>(categoryRequest);
+        html = ScriptHelper.RestoreScriptBlocks(html);
+        html = ScriptHelper.RestoreVariables(html, BlackbirdMetadataIds.SubjectLine);
 
-            if (children != null)
-            {
-                foreach (var child in children)
-                {
-                    folderIds.Add(child.Id);
-                    foldersToProcess.Enqueue(child.Id);
-                }
-            }
-        }
+        html = await ContentBlockHelper.UpdateContentBlocks(html, Client);
 
-        return folderIds;
-    }
+        string? subjectLine = string.IsNullOrEmpty(input.SubjectLine) ? ExtractedSubject : input.SubjectLine;
+
+        var request = new RestRequest($"asset/v1/content/assets/{emailId}", Method.Patch);
+        
+        var views = new Dictionary<string, object> { { "html", new { content = html } } };
+
+        if (!string.IsNullOrEmpty(subjectLine))
+            views.Add("subjectline", new { content = subjectLine });
+
+        if (!string.IsNullOrEmpty(ExtractedPreheader))
+            views.Add("preheader", new { content = ExtractedPreheader });
+
+        var body = new { views };
+        request.AddJsonBody(body);
+
+        var updatedEntity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
+        return new GetContentResponse(updatedEntity);
+    }   
 }
