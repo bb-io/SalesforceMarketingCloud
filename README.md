@@ -48,6 +48,12 @@ To retrieve the `Member ID`, click your username in the top-right corner of the 
 - **Create new email**. Create new email from file.
 - **Update email**. Update existing email from file.
 
+## Events
+
+### Content
+
+- **On content created or updated**
+
 ## Feedback
 
 Do you want to use this app or do you have feedback on our implementation? Reach out to us using the [established channels](https://www.blackbird.io/) or create an issue.

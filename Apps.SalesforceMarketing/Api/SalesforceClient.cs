@@ -22,7 +22,7 @@ public class SalesforceClient : BlackBirdRestClient
         this.AddDefaultHeader("Authorization", $"Bearer {token}");
     }
 
-    public async Task<List<T>> PaginatePost<T>(RestRequest request)
+    public async Task<IEnumerable<T>> PaginatePost<T>(RestRequest request)
     {
         var allItems = new List<T>();
 
@@ -71,7 +71,7 @@ public class SalesforceClient : BlackBirdRestClient
         return allItems;
     }
 
-    public async Task<List<T>> PaginateGet<T>(RestRequest request)
+    public async Task<IEnumerable<T>> PaginateGet<T>(RestRequest request)
     {
         var allItems = new List<T>();
         int page = 1;

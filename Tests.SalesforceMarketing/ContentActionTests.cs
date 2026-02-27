@@ -18,9 +18,9 @@ public class ContentActionTests : TestBase
         var actions = new ContentActions(InvocationContext, FileManager);
         var input = new SearchContentRequest
         {
+            CreatedFromDate = DateTime.UtcNow - TimeSpan.FromHours(1),
             IncludeSubfolders = true,
-            CategoryId = "1326822",
-            ContentTypes = [AssetTypeIds.HtmlEmail]
+            CategoryId = "1325630",
         };
 
         // Act

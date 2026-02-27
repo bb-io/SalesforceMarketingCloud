@@ -79,7 +79,10 @@ public class AssetFilterBuilder
 
         JToken safeValue;
         if (value is DateTime dt)
+        {
+            dt = dt - TimeSpan.FromHours(6);    // SMFC internally operates on UTC-6. Passing just a UTC date won't work
             safeValue = dt.ToString("yyyy-MM-ddTHH:mm:ss");
+        }
         else if (value is IEnumerable<string> stringList)
             safeValue = new JArray(stringList);
         else
