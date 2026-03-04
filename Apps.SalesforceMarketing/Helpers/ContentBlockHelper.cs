@@ -99,7 +99,8 @@ public static class ContentBlockHelper
         string html,
         SalesforceClient client,
         string? newEmailName,
-        string? categoryId)
+        string? categoryId,
+        bool keepOriginalFolders)
     {
         var doc = new HtmlDocument();
         doc.OptionFixNestedTags = true;
@@ -127,10 +128,18 @@ public static class ContentBlockHelper
                 continue;
             }
 
+            string? targetCategoryId = categoryId;
+            if (keepOriginalFolders)
+            {
+                string? originalCategoryId = await GetOriginalAssetCategoryId(client, originalId);
+                if (!string.IsNullOrEmpty(originalCategoryId))
+                    targetCategoryId = originalCategoryId;
+            }
+
             string translatedContent = WebUtility.HtmlDecode(node.InnerHtml.Trim());
             string prefix = !string.IsNullOrEmpty(newEmailName) ? $"{newEmailName} - " : string.Empty;
             string newBlockName = $"({prefix}Block {originalId} - {DateTime.UtcNow.Ticks})";
-            string newAssetId = await CreateNewAsset(client, newBlockName, translatedContent, categoryId);
+            string newAssetId = await CreateNewAsset(client, newBlockName, translatedContent, targetCategoryId);
 
             uploadedBlocksCache[originalId] = newAssetId;
             ReplaceNodeWithReference(doc, node, newAssetId);
@@ -184,6 +193,13 @@ public static class ContentBlockHelper
         string newReference = $"%%=ContentBlockByID({assetId})=%%";
         var textNode = doc.CreateTextNode(newReference);
         node.ParentNode.ReplaceChild(textNode, node);
+    }
+
+    private static async Task<string?> GetOriginalAssetCategoryId(SalesforceClient client, string originalAssetId)
+    {
+        var request = new RestRequest($"asset/v1/content/assets/{originalAssetId}", Method.Get);
+        var originalAsset = await client.ExecuteWithErrorHandling<AssetEntity>(request);
+        return originalAsset.Category?.Id;
     }
 
     private static async Task<string> CreateNewAsset(

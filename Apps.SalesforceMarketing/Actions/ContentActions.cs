@@ -141,7 +141,12 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         html = ScriptHelper.RestoreScriptBlocks(html);
         html = ScriptHelper.RestoreVariables(html, BlackbirdMetadataIds.SubjectLine);
 
-        html = await ContentBlockHelper.RestoreContentBlocks(html, Client, input.EmailName, input.CategoryId);
+        html = await ContentBlockHelper.RestoreContentBlocks(
+            html, 
+            Client, 
+            input.EmailName,
+            input.CategoryId,
+            input.CreateContentBlocksInOriginalFolder ?? false);
 
         string subject = 
             input.SubjectLine ?? 

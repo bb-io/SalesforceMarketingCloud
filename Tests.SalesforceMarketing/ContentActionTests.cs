@@ -2,9 +2,8 @@
 using Apps.SalesforceMarketing.Actions;
 using Apps.SalesforceMarketing.Models.Identifiers;
 using Apps.SalesforceMarketing.Models.Request.Content;
-using Blackbird.Applications.Sdk.Common.Files;
-using Apps.SalesforceMarketing.Constants;
 using Apps.SalesforceMarketing.Models.Identifiers.Optional;
+using Blackbird.Applications.Sdk.Common.Files;
 
 namespace Tests.SalesforceMarketing;
 
@@ -96,6 +95,7 @@ public class ContentActionTests : TestBase
             Content = new FileReference { Name = "test.html" },
             EmailName = "test content blocks",
             CategoryId = "1326002",
+            CreateContentBlocksInOriginalFolder = true
             //ScriptVariableNames =   [   "chkey",           "@jobtype",         "test"                  ],
             //ScriptVariableValues =  [   "updatedChKey",    "updatedJobType",   "this will not update"  ]
         };
