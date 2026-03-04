@@ -71,12 +71,12 @@ public class ContentActionTests : TestBase
     {
         // Arrange
         var actions = new ContentActions(InvocationContext, FileManager);
-        var emailId = new EmailIdentifier { EmailId = "940892" };
+        var emailId = new EmailIdentifier { EmailId = "937168" };
         var request = new DownloadEmailRequest 
         {
             //IgnoreBlocksInFolderIds = ["1328312"],
             //ContentBlockIdsToIgnore = ["943987"]
-            ScriptVariablesToExtract = ["FirstNameStr"]
+            ScriptVariablesToExtract = ["FirstNameStr", "SubjectLineStr", "PreHeaderStr"]
         };
 
         // Act

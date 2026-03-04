@@ -14,14 +14,18 @@ public static class ScriptHelper
     public static string ExtractVariables(string html, IEnumerable<string> variableNames, string? explicitMetadataId = null)
     {
         if (variableNames == null || !variableNames.Any())
-            return html;
+            return html; 
+        
+        var distinctVariables = variableNames
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
 
         var sbHtml = new StringBuilder(html);
         var translationDivs = new StringBuilder();
 
         int globalCounter = 1;
 
-        foreach (var rawVariableName in variableNames)
+        foreach (var rawVariableName in distinctVariables)
         {
             if (string.IsNullOrWhiteSpace(rawVariableName))
                 continue;
@@ -46,9 +50,9 @@ public static class ScriptHelper
 
                 var prefix = m.Groups[1].Value;
                 var quote = m.Groups[2].Value;
-                var content = m.Groups[3].Value;
-
-                if (string.IsNullOrWhiteSpace(content) || content.StartsWith($"[[{metadataId}"))
+                var content = m.Groups[3].Value; 
+                
+                if (string.IsNullOrWhiteSpace(content) || content.StartsWith("[[blackbird-"))
                     continue;
 
                 string id = $"{metadataId}-{globalCounter++}";
