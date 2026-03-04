@@ -8,4 +8,8 @@ public class DownloadEmailRequest
 {
     [Display("Content block IDs to ignore"), DataSource(typeof(ContentBlockDataHandler))]
     public IEnumerable<string>? ContentBlockIdsToIgnore { get; set; }
+
+    [Display("Ignore content blocks in folders", 
+        Description = "Folder IDs containing content blocks that should be ignored.")]
+    public IEnumerable<string>? IgnoreBlocksInFolderIds { get; set; }
 }

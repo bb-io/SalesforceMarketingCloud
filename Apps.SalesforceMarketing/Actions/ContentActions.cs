@@ -107,7 +107,11 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         }
 
         string htmlContent = entity.Views.Html.Content;
-        htmlContent = await ContentBlockHelper.ExpandContentBlocks(htmlContent, Client, input.ContentBlockIdsToIgnore);
+        htmlContent = await ContentBlockHelper.ExpandContentBlocks(
+            htmlContent, 
+            Client, 
+            input.ContentBlockIdsToIgnore,
+            input.IgnoreBlocksInFolderIds);
 
         string? subjectLine = entity.Views.SubjectLine?.Content;
         string? preheader = entity.Views.Preheader?.Content;
