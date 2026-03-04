@@ -218,5 +218,18 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
 
         var updatedEntity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
         return new GetContentResponse(updatedEntity);
-    }   
+    }
+
+    [Action("Get content ID from a file", Description = "Get content ID from file metadata")]
+    public async Task<GetContentIdFromFileResponse> GetContentIdFromFile(
+        [ActionParameter] GetContentIdFromFileRequest input)
+    {
+        string html = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
+        string contentId = HtmlHelper.ExtractContentId(html) ?? 
+            throw new PluginMisconfigurationException(
+                $"No content ID was found in the input file. " +
+                $"Known content metadata identifiers: {string.Join(" ;", BlackbirdMetadataIds.ContentTypeIds)}");
+
+        return new(contentId);
+    }
 }

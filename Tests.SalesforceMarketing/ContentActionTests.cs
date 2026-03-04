@@ -127,4 +127,22 @@ public class ContentActionTests : TestBase
         PrintResult(result);
         Assert.IsNotNull(result);
     }
+
+    [TestMethod]
+    public async Task GetContentIdFromFile_ReturnsContentId()
+    {
+        // Arrange
+        var action = new ContentActions(InvocationContext, FileManager);
+        var input = new GetContentIdFromFileRequest
+        {
+            Content = new FileReference { Name = "test.html" }
+        };
+
+        // Act
+        var result = await action.GetContentIdFromFile(input);
+
+        // Assert
+        Console.WriteLine(result.ContentId);
+        Assert.IsNotNull(result.ContentId);
+    }
 }

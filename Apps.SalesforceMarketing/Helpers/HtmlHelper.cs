@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using Apps.SalesforceMarketing.Constants;
 
 namespace Apps.SalesforceMarketing.Helpers;
 
@@ -34,7 +35,28 @@ public static class HtmlHelper
         doc.LoadHtml(html);
 
         var metaNode = doc.DocumentNode.SelectSingleNode($"//meta[@name='{metadataId}']");
-        return metaNode?.GetAttributeValue("content", null);
+        return metaNode?.GetAttributeValue("content", string.Empty);
+    }
+
+    public static string? ExtractContentId(string html)
+    {
+        var doc = new HtmlDocument();
+        doc.LoadHtml(html);
+
+        foreach (var knownContentId in BlackbirdMetadataIds.ContentTypeIds)
+        {
+            var metaNode = doc.DocumentNode.SelectSingleNode($"//meta[@name='{knownContentId}']");
+
+            if (metaNode != null)
+            {
+                string? contentValue = metaNode.GetAttributeValue("content", string.Empty);
+
+                if (!string.IsNullOrEmpty(contentValue))
+                    return contentValue;
+            }
+        }
+
+        return null;
     }
 
     public static string InjectDiv(string html, string? content, string divId)
