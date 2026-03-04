@@ -1,5 +1,6 @@
 ﻿using HtmlAgilityPack;
 using Apps.SalesforceMarketing.Constants;
+using Apps.SalesforceMarketing.Models.Html;
 
 namespace Apps.SalesforceMarketing.Helpers;
 
@@ -76,7 +77,7 @@ public static class HtmlHelper
         return doc.DocumentNode.OuterHtml;
     }
 
-    public static (string UpdatedHtml, string? Content) ExtractAndDeleteDiv(string html, string divId)
+    public static ExtractedMetadataContent ExtractAndDeleteDiv(string html, string divId)
     {
         var doc = new HtmlDocument();
         doc.LoadHtml(html);
@@ -86,9 +87,9 @@ public static class HtmlHelper
         {
             var subject = div.InnerText.Trim();
             div.Remove();
-            return (doc.DocumentNode.OuterHtml, subject);
+            return new(doc.DocumentNode.OuterHtml, subject);
         }
 
-        return (html, null);
+        return new(html, null);
     }
 }
