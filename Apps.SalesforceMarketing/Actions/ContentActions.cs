@@ -53,7 +53,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         entities = entities.FilterExcludedNames(input.NameDoesntContain, e => e.Name);
 
         var wrappedItems = entities.Select(x => new GetContentResponse(x)).ToArray();
-        return new SearchContentResponse(wrappedItems);
+        return new(wrappedItems);
     }
 
     [Action("Get email details", Description = "Get details of a specific email")]
@@ -129,26 +129,16 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent));
         var file = await fileManagementClient.UploadAsync(stream, "application/html", $"{entity.Name}.html");
 
-        return new DownloadEmailResponse(file);
+        return new(file);
     }
 
     [Action("Create new email", Description = "Create new email from file")]
     public async Task<GetContentResponse> CreateEmail([ActionParameter] UploadEmailRequest input)
     {
-        string html = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
-
-        var subjectLineHtmlUpdate = HtmlHelper.ExtractAndDeleteDiv(html, BlackbirdMetadataIds.SubjectLine);
-        html = subjectLineHtmlUpdate.ModifiedHtml;
-
-        var preheaderHtmlUpdate = HtmlHelper.ExtractAndDeleteDiv(html, BlackbirdMetadataIds.Preheader);
-        html = preheaderHtmlUpdate.ModifiedHtml;
-
-        if (input.ScriptVariableNames != null && input.ScriptVariableValues != null)
-            html = ScriptHelper.UpdateScriptVariables(html, input.ScriptVariableNames, input.ScriptVariableValues);
-
-        html = ScriptHelper.RestoreScriptBlocks(html); 
-        html = ScriptHelper.RestoreVariables(html, BlackbirdMetadataIds.AmpScriptVar);
-        html = ScriptHelper.RestoreVariables(html, BlackbirdMetadataIds.SubjectLine);
+        string rawHtml = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content); 
+        
+        var processedData = ProcessBaseEmailHtml(rawHtml, input.ScriptVariableNames, input.ScriptVariableValues);
+        string html = processedData.ProcessedHtml;
 
         html = await ContentBlockHelper.RestoreContentBlocks(
             html, 
@@ -159,11 +149,11 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
 
         string subject = 
             input.SubjectLine ??
-            subjectLineHtmlUpdate.MetadataContent ?? 
+            processedData.ExtractedSubject ?? 
             throw new PluginMisconfigurationException(
                 "Email subject line is not found in the input file. Provide it in the input or include it in the file"
             );
-        string? preheader = preheaderHtmlUpdate.MetadataContent;
+        string? preheader = processedData.ExtractedPreheader;
         string emailName = string.IsNullOrEmpty(input.EmailName) ? input.Content.Name : input.EmailName;
 
         var request = new RestRequest("asset/v1/content/assets", Method.Post);
@@ -182,7 +172,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         request.AddJsonBody(body);
 
         var createdEntity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
-        return new GetContentResponse(createdEntity);
+        return new(createdEntity);
     }
 
     [Action("Update email", Description = "Update existing email from file")]
@@ -190,47 +180,36 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         [ActionParameter] OptionalEmailIdentifier emailInput,
         [ActionParameter] UpdateEmailRequest input)
     {
-        string html = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
+        string rawHtml = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
 
         string emailId =
-            HtmlHelper.ExtractHeadMetadata(html, BlackbirdMetadataIds.EmailId) ??
+            HtmlHelper.ExtractHeadMetadata(rawHtml, BlackbirdMetadataIds.EmailId) ??
             emailInput.EmailId ??
             throw new PluginMisconfigurationException(
                 "Email ID is not found in the input file. Provide it in the input or include it in the file"
             );
 
-        var (htmlWithoutSubject, ExtractedSubject) = HtmlHelper.ExtractAndDeleteDiv(html, BlackbirdMetadataIds.SubjectLine);
-        html = htmlWithoutSubject;
-
-        var (htmlWithoutPreheader, ExtractedPreheader) = HtmlHelper.ExtractAndDeleteDiv(html, BlackbirdMetadataIds.Preheader);
-        html = htmlWithoutPreheader;
-
-        if (input.ScriptVariableNames != null && input.ScriptVariableValues != null)
-            html = ScriptHelper.UpdateScriptVariables(html, input.ScriptVariableNames, input.ScriptVariableValues);
-
-        html = ScriptHelper.RestoreScriptBlocks(html);
-        html = ScriptHelper.RestoreVariables(html, BlackbirdMetadataIds.AmpScriptVar);
-        html = ScriptHelper.RestoreVariables(html, BlackbirdMetadataIds.SubjectLine);
+        var processedData = ProcessBaseEmailHtml(rawHtml, input.ScriptVariableNames, input.ScriptVariableValues);
+        string html = processedData.ProcessedHtml;
 
         html = await ContentBlockHelper.UpdateContentBlocks(html, Client);
 
-        string? subjectLine = string.IsNullOrEmpty(input.SubjectLine) ? ExtractedSubject : input.SubjectLine;
+        string? subjectLine = string.IsNullOrEmpty(input.SubjectLine) ? processedData.ExtractedSubject : input.SubjectLine;
 
-        var request = new RestRequest($"asset/v1/content/assets/{emailId}", Method.Patch);
-        
+        var request = new RestRequest($"asset/v1/content/assets/{emailId}", Method.Patch);        
         var views = new Dictionary<string, object> { { "html", new { content = html } } };
 
         if (!string.IsNullOrEmpty(subjectLine))
             views.Add("subjectline", new { content = subjectLine });
 
-        if (!string.IsNullOrEmpty(ExtractedPreheader))
-            views.Add("preheader", new { content = ExtractedPreheader });
+        if (!string.IsNullOrEmpty(processedData.ExtractedPreheader))
+            views.Add("preheader", new { content = processedData.ExtractedPreheader });
 
         var body = new { views };
         request.AddJsonBody(body);
 
         var updatedEntity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
-        return new GetContentResponse(updatedEntity);
+        return new(updatedEntity);
     }
 
     [Action("Get content ID from a file", Description = "Get content ID from file metadata")]
@@ -244,5 +223,26 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
                 $"Known content metadata identifiers: {string.Join(" ;", BlackbirdMetadataIds.ContentTypeIds)}");
 
         return new(contentId);
+    }
+
+    private static (string ProcessedHtml, string? ExtractedSubject, string? ExtractedPreheader) ProcessBaseEmailHtml(
+        string html,
+        IEnumerable<string>? scriptNames,
+        IEnumerable<string>? scriptValues)
+    {
+        var (htmlWithoutSubject, extractedSubject) = HtmlHelper.ExtractAndDeleteDiv(html, BlackbirdMetadataIds.SubjectLine);
+        html = htmlWithoutSubject;
+
+        var (htmlWithoutPreheader, extractedPreheader) = HtmlHelper.ExtractAndDeleteDiv(html, BlackbirdMetadataIds.Preheader);
+        html = htmlWithoutPreheader;
+
+        if (scriptNames != null && scriptValues != null)
+            html = ScriptHelper.UpdateScriptVariables(html, scriptNames, scriptValues);
+
+        html = ScriptHelper.RestoreScriptBlocks(html);
+        html = ScriptHelper.RestoreVariables(html, BlackbirdMetadataIds.AmpScriptVar);
+        html = ScriptHelper.RestoreVariables(html, BlackbirdMetadataIds.SubjectLine);
+
+        return (html, extractedSubject, extractedPreheader);
     }
 }

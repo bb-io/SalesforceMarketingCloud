@@ -9,7 +9,10 @@ namespace Apps.SalesforceMarketing.Helpers;
 
 public static class ScriptHelper
 {
-    private static readonly Regex AmpScriptBlockRegex = new Regex(@"(?s)%%\[.*?\]%%", RegexOptions.Compiled);
+    private static readonly Regex AmpScriptBlockRegex = new Regex(
+        @"(?is)%%\[.*?\]%%|%%=\s*ContentBlockBy(?:ID|Key|Name)\s*\(.*?\)\s*=%%",
+        RegexOptions.Compiled
+    );
 
     public static string ExtractVariables(string html, IEnumerable<string> variableNames, string? explicitMetadataId = null)
     {
