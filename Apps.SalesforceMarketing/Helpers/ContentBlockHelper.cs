@@ -118,8 +118,9 @@ public static class ContentBlockHelper
         string html,
         SalesforceClient client,
         string? newEmailName,
-        string? categoryId,
-        bool keepOriginalFolders)
+        string? emailCategoryId,
+        bool keepOriginalFolders,
+        string? customNameEnding)
     {
         var doc = new HtmlDocument();
         doc.OptionFixNestedTags = true;
@@ -129,7 +130,7 @@ public static class ContentBlockHelper
             $"//{CustomHtmlTagNames.ContentBlock}[starts-with(@id, '{BlackbirdMetadataIds.ContentBlockId}-')]"
         );
 
-        if (blockNodes == null) 
+        if (blockNodes == null)
             return html;
 
         var sortedNodes = blockNodes
@@ -147,21 +148,40 @@ public static class ContentBlockHelper
                 continue;
             }
 
-            string? targetCategoryId = categoryId;
-            if (keepOriginalFolders)
+            string? targetCategoryId = emailCategoryId;
+            string? originalName = null;
+
+            if (keepOriginalFolders || !string.IsNullOrWhiteSpace(customNameEnding))
             {
-                string? originalCategoryId = await GetOriginalAssetCategoryId(client, originalId);
-                if (!string.IsNullOrEmpty(originalCategoryId))
-                    targetCategoryId = originalCategoryId;
+                var originalAsset = await GetAssetById(client, originalId);
+
+                if (originalAsset != null)
+                {
+                    originalName = originalAsset.Name;
+
+                    if (keepOriginalFolders && originalAsset.Category != null)
+                        targetCategoryId = originalAsset.Category.Id.ToString();
+                }
             }
 
             string translatedContent = WebUtility.HtmlDecode(node.InnerHtml.Trim());
-            string prefix = !string.IsNullOrEmpty(newEmailName) ? $"{newEmailName} - " : string.Empty;
-            string newBlockName = $"({prefix}Block {originalId} - {DateTime.UtcNow.Ticks})";
-            string newAssetId = await CreateNewAsset(client, newBlockName, translatedContent, targetCategoryId);
+            string newBlockName;
 
-            uploadedBlocksCache[originalId] = newAssetId;
-            ReplaceNodeWithReference(doc, node, newAssetId);
+            if (!string.IsNullOrWhiteSpace(customNameEnding) && !string.IsNullOrWhiteSpace(originalName))
+                newBlockName = $"{originalName} {customNameEnding}".Trim();
+            else
+            {
+                string prefix = !string.IsNullOrEmpty(newEmailName) ? $"{newEmailName} - " : string.Empty;
+                newBlockName = $"({prefix}Block {originalId} - {DateTime.UtcNow.Ticks})";
+
+                if (!string.IsNullOrWhiteSpace(customNameEnding))
+                    newBlockName = $"{newBlockName} {customNameEnding}".Trim();
+            }
+
+            var newAsset = await CreateNewAsset(client, newBlockName, translatedContent, targetCategoryId);
+
+            uploadedBlocksCache[originalId] = newAsset.Id;
+            ReplaceNodeWithReference(doc, node, newAsset.Id);
         }
 
         return doc.DocumentNode.OuterHtml;
@@ -214,14 +234,7 @@ public static class ContentBlockHelper
         node.ParentNode.ReplaceChild(textNode, node);
     }
 
-    private static async Task<string?> GetOriginalAssetCategoryId(SalesforceClient client, string originalAssetId)
-    {
-        var request = new RestRequest($"asset/v1/content/assets/{originalAssetId}", Method.Get);
-        var originalAsset = await client.ExecuteWithErrorHandling<AssetEntity>(request);
-        return originalAsset.Category?.Id;
-    }
-
-    private static async Task<string> CreateNewAsset(
+    private static async Task<AssetEntity> CreateNewAsset(
         SalesforceClient client,
         string name,
         string content,
@@ -240,8 +253,7 @@ public static class ContentBlockHelper
 
         request.AddJsonBody(body);
 
-        var response = await client.ExecuteWithErrorHandling<AssetEntity>(request);
-        return response.Id;
+        return await client.ExecuteWithErrorHandling<AssetEntity>(request);
     }
 
     private static async Task UpdateAsset(

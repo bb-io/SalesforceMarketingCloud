@@ -140,12 +140,18 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         var processedData = ProcessBaseEmailHtml(rawHtml, input.ScriptVariableNames, input.ScriptVariableValues);
         string html = processedData.ProcessedHtml;
 
+        string baseEmailName = string.IsNullOrEmpty(input.EmailName) ? input.Content.Name : input.EmailName;
+        string finalEmailName = string.IsNullOrWhiteSpace(input.ContentSuffix)
+            ? baseEmailName
+            : $"{baseEmailName} {input.ContentSuffix}".Trim();
+
         html = await ContentBlockHelper.RestoreContentBlocks(
             html, 
             Client, 
             input.EmailName,
             input.CategoryId,
-            input.CreateContentBlocksInOriginalFolder ?? false);
+            input.CreateContentBlocksInOriginalFolder ?? false,
+            input.ContentSuffix);
 
         string subject = 
             input.SubjectLine ??
@@ -153,13 +159,12 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             throw new PluginMisconfigurationException(
                 "Email subject line is not found in the input file. Provide it in the input or include it in the file"
             );
-        string? preheader = processedData.ExtractedPreheader;
-        string emailName = string.IsNullOrEmpty(input.EmailName) ? input.Content.Name : input.EmailName;
+        string? preheader = processedData.ExtractedPreheader;                
 
         var request = new RestRequest("asset/v1/content/assets", Method.Post);
         var body = new
         {
-            name = emailName,
+            name = finalEmailName,
             assetType = new { id = AssetTypeIds.HtmlEmail },
             views = new
             {

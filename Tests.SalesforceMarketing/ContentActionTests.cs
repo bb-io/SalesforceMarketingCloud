@@ -74,7 +74,7 @@ public class ContentActionTests : TestBase
         var emailId = new EmailIdentifier { EmailId = "940892" };
         var request = new DownloadEmailRequest 
         {
-            IgnoreBlocksInFolderIds = ["1328312"],
+            //IgnoreBlocksInFolderIds = ["1328312"],
         };
 
         // Act
@@ -93,9 +93,10 @@ public class ContentActionTests : TestBase
         var request = new UploadEmailRequest
         {
             Content = new FileReference { Name = "test.html" },
-            EmailName = "test content blocks",
+            EmailName = "test context suffixes",
             CategoryId = "1326002",
-            CreateContentBlocksInOriginalFolder = true
+            CreateContentBlocksInOriginalFolder = true,
+            ContentSuffix = "(de-AT)"
             //ScriptVariableNames =   [   "chkey",           "@jobtype",         "test"                  ],
             //ScriptVariableValues =  [   "updatedChKey",    "updatedJobType",   "this will not update"  ]
         };
