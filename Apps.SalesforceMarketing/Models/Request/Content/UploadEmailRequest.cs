@@ -19,6 +19,9 @@ public class UploadEmailRequest
     [Display("Email name", Description = "Overrides the default file name")]
     public string? EmailName { get; set; }
 
+    [Display("Content suffix", Description = "A custom ending for the name of the newly created email and its content blocks")]
+    public string? ContentSuffix { get; set; }
+
     [Display("Create content blocks in their original folder", Description = "False by default")]
     public bool? CreateContentBlocksInOriginalFolder { get; set; }
 
