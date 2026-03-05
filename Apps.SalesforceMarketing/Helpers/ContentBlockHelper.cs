@@ -26,13 +26,16 @@ public static class ContentBlockHelper
     public static async Task<string> ExpandContentBlocks(
         string html,
         SalesforceClient client,
-        IEnumerable<string>? blockIdsToIgnore)
+        IEnumerable<string>? blockIdsToIgnore,
+        IEnumerable<string>? ignoreBlocksInFolderIds)
     {
         var sb = new StringBuilder(html);
         bool foundNewBlocks = true;
         int depth = 0;
         const int MaxDepth = 5;
-        var skippedIds = new HashSet<string>(blockIdsToIgnore ?? []);
+
+        var skippedBlockIds = new HashSet<string>(blockIdsToIgnore ?? []);
+        var skippedFolderIds = new HashSet<string>(ignoreBlocksInFolderIds ?? []);
 
         while (foundNewBlocks && depth < MaxDepth)
         {
@@ -44,11 +47,18 @@ public static class ContentBlockHelper
             {
                 var match = idMatches[i];
                 string blockId = match.Groups[1].Value;
-                if (skippedIds.Contains(blockId)) 
+                if (skippedBlockIds.Contains(blockId)) 
                     continue;
 
                 var blockEntity = await GetAssetById(client, blockId)
                     ?? throw new PluginMisconfigurationException($"The block with ID {blockId} was not found");
+
+                if (blockEntity.Category?.Id != null && skippedFolderIds.Contains(blockEntity.Category.Id))
+                {
+                    skippedBlockIds.Add(blockId);
+                    continue;
+                }
+
                 string blockContent = GetBlockContent(blockEntity);
                 string replacement = 
                     $@"<{CustomHtmlTagNames.ContentBlock} id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">
@@ -74,8 +84,17 @@ public static class ContentBlockHelper
 
                 var blockEntity = await GetAssetByName(client, blockName, parentFolderName) 
                     ?? throw new PluginMisconfigurationException($"The block with name '{blockName}' was not found");
-                if (skippedIds.Contains(blockEntity.Id)) 
+
+                string currentBlockId = blockEntity.Id?.ToString() ?? string.Empty;
+                if (!string.IsNullOrEmpty(currentBlockId) && skippedBlockIds.Contains(currentBlockId))
                     continue;
+
+                if (blockEntity.Category?.Id != null && skippedFolderIds.Contains(blockEntity.Category.Id.ToString()))
+                {
+                    if (!string.IsNullOrEmpty(currentBlockId))
+                        skippedBlockIds.Add(currentBlockId);
+                    continue;
+                }
 
                 string blockContent = GetBlockContent(blockEntity);
                 string blockId = blockEntity?.Id ?? "0";
@@ -99,7 +118,8 @@ public static class ContentBlockHelper
         string html,
         SalesforceClient client,
         string? newEmailName,
-        string? categoryId)
+        string? categoryId,
+        bool keepOriginalFolders)
     {
         var doc = new HtmlDocument();
         doc.OptionFixNestedTags = true;
@@ -127,10 +147,18 @@ public static class ContentBlockHelper
                 continue;
             }
 
+            string? targetCategoryId = categoryId;
+            if (keepOriginalFolders)
+            {
+                string? originalCategoryId = await GetOriginalAssetCategoryId(client, originalId);
+                if (!string.IsNullOrEmpty(originalCategoryId))
+                    targetCategoryId = originalCategoryId;
+            }
+
             string translatedContent = WebUtility.HtmlDecode(node.InnerHtml.Trim());
             string prefix = !string.IsNullOrEmpty(newEmailName) ? $"{newEmailName} - " : string.Empty;
             string newBlockName = $"({prefix}Block {originalId} - {DateTime.UtcNow.Ticks})";
-            string newAssetId = await CreateNewAsset(client, newBlockName, translatedContent, categoryId);
+            string newAssetId = await CreateNewAsset(client, newBlockName, translatedContent, targetCategoryId);
 
             uploadedBlocksCache[originalId] = newAssetId;
             ReplaceNodeWithReference(doc, node, newAssetId);
@@ -184,6 +212,13 @@ public static class ContentBlockHelper
         string newReference = $"%%=ContentBlockByID({assetId})=%%";
         var textNode = doc.CreateTextNode(newReference);
         node.ParentNode.ReplaceChild(textNode, node);
+    }
+
+    private static async Task<string?> GetOriginalAssetCategoryId(SalesforceClient client, string originalAssetId)
+    {
+        var request = new RestRequest($"asset/v1/content/assets/{originalAssetId}", Method.Get);
+        var originalAsset = await client.ExecuteWithErrorHandling<AssetEntity>(request);
+        return originalAsset.Category?.Id;
     }
 
     private static async Task<string> CreateNewAsset(

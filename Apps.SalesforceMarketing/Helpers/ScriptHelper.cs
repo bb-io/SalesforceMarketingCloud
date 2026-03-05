@@ -9,84 +9,109 @@ namespace Apps.SalesforceMarketing.Helpers;
 
 public static class ScriptHelper
 {
-    private static readonly Regex AmpScriptBlockRegex = new Regex(@"(?s)%%\[.*?\]%%", RegexOptions.Compiled);
+    private static readonly Regex AmpScriptBlockRegex = new Regex(
+        @"(?is)%%\[.*?\]%%|%%=\s*ContentBlockBy(?:ID|Key|Name)\s*\(.*?\)\s*=%%",
+        RegexOptions.Compiled
+    );
 
-    public static string ExtractVariables(string html, string variableName, string metadataId)
+    public static string ExtractVariables(string html, IEnumerable<string> variableNames, string? explicitMetadataId = null)
     {
-        var assignmentRegex = new Regex(
-            $@"(?i)(SET\s+{Regex.Escape(variableName)}\s*=\s*)(['""])(.*?)\2",
-            RegexOptions.Compiled
-        );
-
-        var matches = assignmentRegex.Matches(html);
-
-        if (matches.Count == 0)
-            return html;
+        if (variableNames == null || !variableNames.Any())
+            return html; 
+        
+        var distinctVariables = variableNames
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
 
         var sbHtml = new StringBuilder(html);
         var translationDivs = new StringBuilder();
 
-        translationDivs.AppendLine();
-        translationDivs.AppendLine($"");
+        int globalCounter = 1;
 
-        for (int i = matches.Count - 1; i >= 0; i--)
+        foreach (var rawVariableName in distinctVariables)
         {
-            var m = matches[i];
-
-            var prefix = m.Groups[1].Value;
-            var quote = m.Groups[2].Value;
-            var content = m.Groups[3].Value;
-
-            if (string.IsNullOrWhiteSpace(content) || content.StartsWith($"[[{metadataId}"))
+            if (string.IsNullOrWhiteSpace(rawVariableName))
                 continue;
 
-            string id = $"{metadataId}-{matches.Count - i}";
-            string token = $"[[{id}]]";
+            string normalizedVarName = $"@{rawVariableName.TrimStart('@')}";
+            string cleanVarName = normalizedVarName.TrimStart('@');
 
-            sbHtml.Remove(m.Index, m.Length);
-            sbHtml.Insert(m.Index, $"{prefix}{quote}{token}{quote}");
+            string metadataId = explicitMetadataId ?? $"{BlackbirdMetadataIds.AmpScriptVar}-{cleanVarName}";
 
-            translationDivs.AppendLine(
-                $"<div id=\"{id}\">{content}</div>"
+            var assignmentRegex = new Regex(
+                $@"(?i)(SET\s+{Regex.Escape(normalizedVarName)}\s*=\s*)(['""])(.*?)\2",
+                RegexOptions.Compiled
             );
+
+            var matches = assignmentRegex.Matches(sbHtml.ToString());
+
+            if (matches.Count == 0) continue;
+
+            for (int i = matches.Count - 1; i >= 0; i--)
+            {
+                var m = matches[i];
+
+                var prefix = m.Groups[1].Value;
+                var quote = m.Groups[2].Value;
+                var content = m.Groups[3].Value; 
+                
+                if (string.IsNullOrWhiteSpace(content) || content.StartsWith("[[blackbird-"))
+                    continue;
+
+                string id = $"{metadataId}-{globalCounter++}";
+                string token = $"[[{id}]]";
+
+                sbHtml.Remove(m.Index, m.Length);
+                sbHtml.Insert(m.Index, $"{prefix}{quote}{token}{quote}");
+
+                translationDivs.AppendLine($"<div id=\"{id}\">{content}</div>");
+            }
         }
+
+        if (globalCounter == 1)
+            return html;
 
         string result = sbHtml.ToString();
         var bodyMatch = Regex.Match(result, "<body[^>]*>", RegexOptions.IgnoreCase);
 
         if (bodyMatch.Success)
             result = result.Insert(bodyMatch.Index + bodyMatch.Length, translationDivs.ToString());
+        else
+            result += translationDivs;
 
         return result;
     }
 
-    public static string RestoreVariables(string html, string metadataId)
+    public static string RestoreVariables(string html, string metadataPrefix)
     {
         var doc = new HtmlDocument();
         doc.LoadHtml(html);
 
-        var translationDivs = doc.DocumentNode.SelectNodes($"//div[starts-with(@id, '{metadataId}-')]");
+        var translationDivs = doc.DocumentNode.SelectNodes($"//div[starts-with(@id, '{metadataPrefix}-')]");
 
         if (translationDivs == null)
             return html;
 
-        string result = html;
+        var replacements = new Dictionary<string, string>();
 
         foreach (var div in translationDivs)
         {
             string token = $"[[{div.Id}]]";
-            string translatedText = div.InnerHtml;
+            string translatedText = WebUtility.HtmlDecode(div.InnerHtml);
 
-            translatedText = WebUtility.HtmlDecode(translatedText);
-            result = result.Replace(token, translatedText);
+            replacements.Add(token, translatedText); 
+            
+            var spaceNode = div.PreviousSibling;
+            if (spaceNode != null && spaceNode.NodeType == HtmlNodeType.Text && string.IsNullOrWhiteSpace(spaceNode.InnerHtml))
+                spaceNode.Remove();
+
+            div.Remove();
         }
 
-        result = Regex.Replace(
-            result,
-            $@"<div id=""{Regex.Escape(metadataId)}-\d+"".*?</div>\s*",
-            "",
-            RegexOptions.Singleline
-        );
+        string result = doc.DocumentNode.OuterHtml;
+
+        foreach (var replacement in replacements)
+            result = result.Replace(replacement.Key, replacement.Value);
 
         return result.Trim();
     }

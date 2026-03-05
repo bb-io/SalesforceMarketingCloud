@@ -1,4 +1,6 @@
 ﻿using HtmlAgilityPack;
+using Apps.SalesforceMarketing.Constants;
+using Apps.SalesforceMarketing.Models.Html;
 
 namespace Apps.SalesforceMarketing.Helpers;
 
@@ -34,7 +36,28 @@ public static class HtmlHelper
         doc.LoadHtml(html);
 
         var metaNode = doc.DocumentNode.SelectSingleNode($"//meta[@name='{metadataId}']");
-        return metaNode?.GetAttributeValue("content", null);
+        return metaNode?.GetAttributeValue("content", string.Empty);
+    }
+
+    public static string? ExtractContentId(string html)
+    {
+        var doc = new HtmlDocument();
+        doc.LoadHtml(html);
+
+        foreach (var knownContentId in BlackbirdMetadataIds.ContentTypeIds)
+        {
+            var metaNode = doc.DocumentNode.SelectSingleNode($"//meta[@name='{knownContentId}']");
+
+            if (metaNode != null)
+            {
+                string? contentValue = metaNode.GetAttributeValue("content", string.Empty);
+
+                if (!string.IsNullOrEmpty(contentValue))
+                    return contentValue;
+            }
+        }
+
+        return null;
     }
 
     public static string InjectDiv(string html, string? content, string divId)
@@ -54,7 +77,7 @@ public static class HtmlHelper
         return doc.DocumentNode.OuterHtml;
     }
 
-    public static (string UpdatedHtml, string? Content) ExtractAndDeleteDiv(string html, string divId)
+    public static ExtractedMetadataContent ExtractAndDeleteDiv(string html, string divId)
     {
         var doc = new HtmlDocument();
         doc.LoadHtml(html);
@@ -64,9 +87,9 @@ public static class HtmlHelper
         {
             var subject = div.InnerText.Trim();
             div.Remove();
-            return (doc.DocumentNode.OuterHtml, subject);
+            return new(doc.DocumentNode.OuterHtml, subject);
         }
 
-        return (html, null);
+        return new(html, null);
     }
 }

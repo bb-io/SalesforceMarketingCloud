@@ -2,9 +2,8 @@
 using Apps.SalesforceMarketing.Actions;
 using Apps.SalesforceMarketing.Models.Identifiers;
 using Apps.SalesforceMarketing.Models.Request.Content;
-using Blackbird.Applications.Sdk.Common.Files;
-using Apps.SalesforceMarketing.Constants;
 using Apps.SalesforceMarketing.Models.Identifiers.Optional;
+using Blackbird.Applications.Sdk.Common.Files;
 
 namespace Tests.SalesforceMarketing;
 
@@ -75,7 +74,7 @@ public class ContentActionTests : TestBase
         var emailId = new EmailIdentifier { EmailId = "940892" };
         var request = new DownloadEmailRequest 
         {
-            //ContentBlockIdsToIgnore = ["933760"] 
+            IgnoreBlocksInFolderIds = ["1328312"],
         };
 
         // Act
@@ -96,6 +95,7 @@ public class ContentActionTests : TestBase
             Content = new FileReference { Name = "test.html" },
             EmailName = "test content blocks",
             CategoryId = "1326002",
+            CreateContentBlocksInOriginalFolder = true
             //ScriptVariableNames =   [   "chkey",           "@jobtype",         "test"                  ],
             //ScriptVariableValues =  [   "updatedChKey",    "updatedJobType",   "this will not update"  ]
         };
@@ -113,11 +113,11 @@ public class ContentActionTests : TestBase
     {
         // Arrange
         var actions = new ContentActions(InvocationContext, FileManager);
-        var emailId = new OptionalEmailIdentifier { EmailId = "942702" };
+        var emailId = new OptionalEmailIdentifier { /*EmailId = "940892"*/ };
         var input = new UpdateEmailRequest
         {
             Content = new FileReference { Name = "test.html" },
-            SubjectLine = "overwritten"
+            //SubjectLine = "overwritten"
         };
 
         // Act
@@ -126,5 +126,23 @@ public class ContentActionTests : TestBase
         // Assert
         PrintResult(result);
         Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
+    public async Task GetContentIdFromFile_ReturnsContentId()
+    {
+        // Arrange
+        var action = new ContentActions(InvocationContext, FileManager);
+        var input = new GetContentIdFromFileRequest
+        {
+            Content = new FileReference { Name = "test.html" }
+        };
+
+        // Act
+        var result = await action.GetContentIdFromFile(input);
+
+        // Assert
+        Console.WriteLine(result.ContentId);
+        Assert.IsNotNull(result.ContentId);
     }
 }

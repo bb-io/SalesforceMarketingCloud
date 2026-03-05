@@ -47,6 +47,7 @@ To retrieve the `Member ID`, click your username in the top-right corner of the 
 - **Download email**. Download email content.
 - **Create new email**. Create new email from file.
 - **Update email**. Update existing email from file.
+- **Get content ID from a file**. Get content ID from file metadata.
 
 ## Events
 
