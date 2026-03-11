@@ -60,10 +60,7 @@ public static class ContentBlockHelper
                 }
 
                 string blockContent = GetBlockContent(blockEntity);
-                string replacement = 
-                    $@"<{CustomHtmlTagNames.ContentBlock} id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">
-                    {blockContent}
-                    </{CustomHtmlTagNames.ContentBlock}>";
+                string replacement = WrapBlockInTag(blockId, blockContent);
 
                 sb.Remove(match.Index, match.Length);
                 sb.Insert(match.Index, replacement);
@@ -98,10 +95,7 @@ public static class ContentBlockHelper
 
                 string blockContent = GetBlockContent(blockEntity);
                 string blockId = blockEntity?.Id ?? "0";
-                string replacement = 
-                    $@"<{CustomHtmlTagNames.ContentBlock} id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">
-                    {blockContent}
-                    </{CustomHtmlTagNames.ContentBlock}>";
+                string replacement = WrapBlockInTag(blockId, blockContent);
 
                 sb.Remove(match.Index, match.Length);
                 sb.Insert(match.Index, replacement);
@@ -187,9 +181,18 @@ public static class ContentBlockHelper
         return doc.DocumentNode.OuterHtml;
     }
 
+    public static string WrapBlockInTag(string blockId, string blockContent)
+    {
+        return 
+            $@"<{CustomHtmlTagNames.ContentBlock} id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">" +
+            $"{blockContent}" +
+            $"</{CustomHtmlTagNames.ContentBlock}>";
+    }
+
     public static async Task<string> UpdateContentBlocks(
         string html,
-        SalesforceClient client)
+        SalesforceClient client,
+        string? rootBlockId = null)
     {
         var doc = new HtmlDocument();
         doc.OptionFixNestedTags = true;
@@ -221,6 +224,10 @@ public static class ContentBlockHelper
             await UpdateAsset(client, assetId, translatedContent);
 
             updatedBlocksCache.Add(assetId);
+
+            if (assetId == rootBlockId)
+                return translatedContent;
+
             ReplaceNodeWithReference(doc, node, assetId);
         }
 

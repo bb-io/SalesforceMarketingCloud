@@ -1,4 +1,5 @@
 using Apps.SalesforceMarketing.Constants;
+using Apps.SalesforceMarketing.Extensions;
 using Apps.SalesforceMarketing.Helpers;
 using Apps.SalesforceMarketing.Models.Entities.Asset;
 using Apps.SalesforceMarketing.Models.Identifiers;
@@ -64,6 +65,37 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         return new(entity);
     }
 
+    [Action("Download content block", Description = "Download content block content")]
+    public async Task<DownloadContentBlockResponse> DownloadContentBlock(
+        [ActionParameter] ContentBlockIdentifier contentBlockId,
+        [ActionParameter] DownloadContentBlockRequest input)
+    {
+        input.ApplyDefaultValues();
+
+        var request = new RestRequest($"asset/v1/content/assets/{contentBlockId.ContentBlockId}");
+        var entity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
+
+        string content = entity.Content ?? 
+            throw new PluginMisconfigurationException("This content block does not have any content");
+
+        if (input.IgnoreAllNestedBlocks == false)
+        {
+            content = await ContentBlockHelper.ExpandContentBlocks(
+                content, 
+                Client, 
+                input.ContentBlockIdsToIgnore, 
+                input.IgnoreBlocksInFolderIds);
+        }
+
+        content = ContentBlockHelper.WrapBlockInTag(entity.Id, content);
+        content = ScriptHelper.WrapAmpScriptBlocks(content);
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
+        var file = await fileManagementClient.UploadAsync(stream, "application/html", entity.Name.ToHtmlFileName());
+
+        return new(file);
+    }
+
     [Action("Create content block", Description = "Create a new content block")]
     public async Task<GetContentResponse> CreateContentBlock([ActionParameter] CreateContentBlockRequest input)
     {
@@ -127,7 +159,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         htmlContent = ScriptHelper.WrapAmpScriptBlocks(htmlContent);
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent));
-        var file = await fileManagementClient.UploadAsync(stream, "application/html", $"{entity.Name}.html");
+        var file = await fileManagementClient.UploadAsync(stream, "application/html", entity.Name.ToHtmlFileName());
 
         return new(file);
     }

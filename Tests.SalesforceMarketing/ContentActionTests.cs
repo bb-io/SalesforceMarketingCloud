@@ -67,6 +67,25 @@ public class ContentActionTests : TestBase
     }
 
     [TestMethod]
+    public async Task DownloadContentBlock_IsSuccess()
+    {
+        // Arrange
+        var actions = new ContentActions(InvocationContext, FileManager);
+        var blockInput = new ContentBlockIdentifier { ContentBlockId = "945692" };
+        var input = new DownloadContentBlockRequest
+        {
+
+        };
+
+        // Act
+        var result = await actions.DownloadContentBlock(blockInput, input);
+
+        // Assert
+        Console.WriteLine(result.Content.Name);
+        Assert.IsNotNull(result.Content);
+    }
+
+    [TestMethod]
     public async Task DownloadEmail_IsSuccess()
     {
         // Arrange

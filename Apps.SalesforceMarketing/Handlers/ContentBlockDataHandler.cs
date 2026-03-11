@@ -1,9 +1,10 @@
-﻿using Apps.SalesforceMarketing.Api;
-using Apps.SalesforceMarketing.Constants;
+﻿using Apps.SalesforceMarketing.Constants;
+using Apps.SalesforceMarketing.Helpers;
 using Apps.SalesforceMarketing.Models;
 using Apps.SalesforceMarketing.Models.Entities.Asset;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Newtonsoft.Json.Linq;
 using RestSharp;
 
 namespace Apps.SalesforceMarketing.Handlers;
@@ -13,27 +14,19 @@ public class ContentBlockDataHandler(InvocationContext invocationContext)
 {
     public async Task<IEnumerable<DataSourceItem>> GetDataAsync(DataSourceContext context, CancellationToken ct)
     {
-        var client = new SalesforceClient(InvocationContext.AuthenticationCredentialsProviders);
-        var request = new RestRequest("asset/v1/content/assets", Method.Get);
+        var query = new AssetFilterBuilder()
+            .WhereIn("assetType.id", AssetTypeIds.ContentBlockTypes)
+            .WhereLike("name", context.SearchString)
+            .Build();
 
-        var filters = new List<string>
-        {
-            $"assetType.id in ({AssetTypeIds.HtmlBlock}, {AssetTypeIds.TextBlock}, {AssetTypeIds.FreeformBlock})"
-        };
+        var request = new RestRequest("asset/v1/content/assets/query", Method.Post);
 
-        if (!string.IsNullOrWhiteSpace(context.SearchString))
-            filters.Add($"name like '%{context.SearchString}%'");
+        var body = new JObject();
+        if (query != null)
+            body["query"] = query;
 
-        if (filters.Count != 0)
-        {
-            string filterQuery = string.Join(" AND ", filters);
-            request.AddQueryParameter("$filter", filterQuery);
-        }
-
-        request.AddQueryParameter("$pageSize", "50");
-        request.AddQueryParameter("$orderBy", "name asc");
-
-        var response = await client.ExecuteWithErrorHandling<ItemsWrapper<AssetEntity>>(request);
-        return response.Items.Select(x => new DataSourceItem(x.Id, x.ToString()));
+        request.AddStringBody(body.ToString(), DataFormat.Json);
+        var entities = await Client.ExecuteWithErrorHandling<ItemsWrapper<AssetEntity>>(request);
+        return entities.Items.Select(x => new DataSourceItem(x.Id, x.ToString()));
     }
 }
