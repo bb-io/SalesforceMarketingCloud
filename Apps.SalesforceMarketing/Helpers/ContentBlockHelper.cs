@@ -60,10 +60,7 @@ public static class ContentBlockHelper
                 }
 
                 string blockContent = GetBlockContent(blockEntity);
-                string replacement = 
-                    $@"<{CustomHtmlTagNames.ContentBlock} id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">
-                    {blockContent}
-                    </{CustomHtmlTagNames.ContentBlock}>";
+                string replacement = WrapBlockInTag(blockId, blockContent);
 
                 sb.Remove(match.Index, match.Length);
                 sb.Insert(match.Index, replacement);
@@ -98,10 +95,7 @@ public static class ContentBlockHelper
 
                 string blockContent = GetBlockContent(blockEntity);
                 string blockId = blockEntity?.Id ?? "0";
-                string replacement = 
-                    $@"<{CustomHtmlTagNames.ContentBlock} id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">
-                    {blockContent}
-                    </{CustomHtmlTagNames.ContentBlock}>";
+                string replacement = WrapBlockInTag(blockId, blockContent);
 
                 sb.Remove(match.Index, match.Length);
                 sb.Insert(match.Index, replacement);
@@ -187,6 +181,25 @@ public static class ContentBlockHelper
         return doc.DocumentNode.OuterHtml;
     }
 
+    public static string WrapBlockInTag(string blockId, string blockContent)
+    {
+        return 
+            $@"<{CustomHtmlTagNames.ContentBlock} id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">" +
+            $"{blockContent}" +
+            $"</{CustomHtmlTagNames.ContentBlock}>";
+    }
+
+    public static string UnwrapBlockFromTag(string blockContent)
+    {
+        var doc = new HtmlDocument();
+        doc.LoadHtml(blockContent);
+
+        var rootNode = doc.DocumentNode.SelectSingleNode($"//{CustomHtmlTagNames.ContentBlock}") ?? 
+            throw new PluginMisconfigurationException("The file is missing the root blackbird-content-block tag");
+
+        return rootNode.InnerHtml;
+    }
+
     public static async Task<string> UpdateContentBlocks(
         string html,
         SalesforceClient client)
@@ -219,8 +232,8 @@ public static class ContentBlockHelper
 
             string translatedContent = WebUtility.HtmlDecode(node.InnerHtml.Trim());
             await UpdateAsset(client, assetId, translatedContent);
-
             updatedBlocksCache.Add(assetId);
+
             ReplaceNodeWithReference(doc, node, assetId);
         }
 
