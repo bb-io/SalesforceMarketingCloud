@@ -189,10 +189,20 @@ public static class ContentBlockHelper
             $"</{CustomHtmlTagNames.ContentBlock}>";
     }
 
+    public static string UnwrapBlockFromTag(string blockContent)
+    {
+        var doc = new HtmlDocument();
+        doc.LoadHtml(blockContent);
+
+        var rootNode = doc.DocumentNode.SelectSingleNode($"//{CustomHtmlTagNames.ContentBlock}") ?? 
+            throw new PluginMisconfigurationException("The file is missing the root blackbird-content-block tag");
+
+        return rootNode.InnerHtml;
+    }
+
     public static async Task<string> UpdateContentBlocks(
         string html,
-        SalesforceClient client,
-        string? rootBlockId = null)
+        SalesforceClient client)
     {
         var doc = new HtmlDocument();
         doc.OptionFixNestedTags = true;
@@ -222,11 +232,7 @@ public static class ContentBlockHelper
 
             string translatedContent = WebUtility.HtmlDecode(node.InnerHtml.Trim());
             await UpdateAsset(client, assetId, translatedContent);
-
             updatedBlocksCache.Add(assetId);
-
-            if (assetId == rootBlockId)
-                return translatedContent;
 
             ReplaceNodeWithReference(doc, node, assetId);
         }

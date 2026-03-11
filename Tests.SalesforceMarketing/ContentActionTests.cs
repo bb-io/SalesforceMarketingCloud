@@ -4,6 +4,7 @@ using Apps.SalesforceMarketing.Models.Identifiers;
 using Apps.SalesforceMarketing.Models.Request.Content;
 using Apps.SalesforceMarketing.Models.Identifiers.Optional;
 using Blackbird.Applications.Sdk.Common.Files;
+using Apps.SalesforceMarketing.Constants;
 
 namespace Tests.SalesforceMarketing;
 
@@ -53,9 +54,12 @@ public class ContentActionTests : TestBase
         var actions = new ContentActions(InvocationContext, FileManager);
         var request = new CreateContentBlockRequest
         {
-            TextContent = "test content freeform",
-            AssetTypeId = "195",
-            Name = "Test freeform content block from the tests"
+            BlockTypeId = AssetTypeIds.FreeformBlock,
+            BlockName = "Test freeform content block from the tests",
+            CreateContentBlocksInOriginalFolder = true,
+            ContentSuffix = "testsuffx",
+            CategoryId = "1326002",
+            Content = new FileReference { Name = "test.html" }
         };
 
         // Act

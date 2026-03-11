@@ -99,20 +99,27 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
     [Action("Create content block", Description = "Create a new content block")]
     public async Task<GetContentResponse> CreateContentBlock([ActionParameter] CreateContentBlockRequest input)
     {
-        input.Validate();
+        string content = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
 
-        string finalContent;
-        if (input.FileContent != null)
-            finalContent = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.FileContent);
-        else
-            finalContent = input.TextContent!;
+        content = ContentBlockHelper.UnwrapBlockFromTag(content);
+        content = await ContentBlockHelper.RestoreContentBlocks(
+            content,
+            Client,
+            input.BlockName,
+            input.CategoryId,
+            input.CreateContentBlocksInOriginalFolder ?? false,
+            input.ContentSuffix);
+
+        string finalBlockName = string.IsNullOrWhiteSpace(input.ContentSuffix)
+            ? (input.BlockName ?? input.Content.Name)
+            : $"{input.BlockName ?? input.Content.Name} {input.ContentSuffix}".Trim();
 
         var request = new RestRequest("asset/v1/content/assets", Method.Post);
         var body = new
         {
-            name = input.Name,
-            assetType = new { id = int.Parse(input.AssetTypeId) },
-            content = finalContent,
+            name = finalBlockName,
+            assetType = new { id = int.Parse(input.BlockTypeId) },
+            views = new { html = new { content } },
             category = !string.IsNullOrEmpty(input.CategoryId) ? new { id = int.Parse(input.CategoryId) } : null
         };
 
