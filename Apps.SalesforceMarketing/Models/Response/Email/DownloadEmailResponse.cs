@@ -1,6 +1,6 @@
 ﻿using Blackbird.Applications.Sdk.Common.Files;
 
-namespace Apps.SalesforceMarketing.Models.Response.Content;
+namespace Apps.SalesforceMarketing.Models.Response.Email;
 
 public class DownloadEmailResponse(FileReference content)
 {

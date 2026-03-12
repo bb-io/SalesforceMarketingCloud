@@ -3,7 +3,7 @@ using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Models.FileDataSourceItems;
 
-namespace Apps.SalesforceMarketing.Models.Request.Content;
+namespace Apps.SalesforceMarketing.Models.Request.Block;
 
 public class DownloadContentBlockRequest
 {

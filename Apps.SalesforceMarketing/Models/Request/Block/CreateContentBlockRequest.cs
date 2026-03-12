@@ -5,7 +5,7 @@ using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Dictionaries;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Models.FileDataSourceItems;
 
-namespace Apps.SalesforceMarketing.Models.Request.Content;
+namespace Apps.SalesforceMarketing.Models.Request.Block;
 
 public class CreateContentBlockRequest
 {

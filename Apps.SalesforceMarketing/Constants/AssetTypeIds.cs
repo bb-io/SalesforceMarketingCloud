@@ -9,4 +9,5 @@ public static class AssetTypeIds
 
     public static readonly string[] SupportedAssetTypes = [FreeformBlock, TextBlock, HtmlBlock, HtmlEmail];
     public static readonly string[] ContentBlockTypes = [FreeformBlock, TextBlock, HtmlBlock];
+    public static readonly string[] EmailTypes = [HtmlEmail];
 }

@@ -1,21 +1,21 @@
 ﻿using Tests.SalesforceMarketing.Base;
 using Apps.SalesforceMarketing.Actions;
-using Apps.SalesforceMarketing.Models.Identifiers;
 using Apps.SalesforceMarketing.Models.Request.Content;
-using Apps.SalesforceMarketing.Models.Identifiers.Optional;
 using Blackbird.Applications.Sdk.Common.Files;
-using Apps.SalesforceMarketing.Constants;
 
 namespace Tests.SalesforceMarketing;
 
 [TestClass]
 public class ContentActionTests : TestBase
 {
+    private readonly ContentActions _actions;
+
+    public ContentActionTests() => _actions = new ContentActions(InvocationContext, FileManager);
+
     [TestMethod]
     public async Task SearchContent_ReturnsAssets()
     {
         // Arrange
-        var actions = new ContentActions(InvocationContext, FileManager);
         var input = new SearchContentRequest
         {
             CreatedFromDate = DateTime.UtcNow - TimeSpan.FromHours(1),
@@ -24,146 +24,25 @@ public class ContentActionTests : TestBase
         };
 
         // Act
-        var result = await actions.SearchContent(input);
+        var result = await _actions.SearchContent(input);
 
         // Assert
         Console.WriteLine($"Count: {result.Items.Length}");
         PrintResult(result);
         Assert.IsNotEmpty(result.Items);
     }
-
-    [TestMethod]
-    public async Task GetEmailDetails_ReturnsEmailMetadata()
-    {
-        // Arrange
-        var actions = new ContentActions(InvocationContext, FileManager);
-        var emailId = new EmailIdentifier { EmailId = "705627" };
-
-        // Act
-        var result = await actions.GetEmailDetails(emailId);
-
-        // Assert
-        PrintResult(result);
-        Assert.IsNotNull(result);
-    }
-
-    [TestMethod]
-    public async Task CreateContentBlock_ReturnsCreatedContentBlock()
-    {
-        // Arrange
-        var actions = new ContentActions(InvocationContext, FileManager);
-        var request = new CreateContentBlockRequest
-        {
-            BlockTypeId = AssetTypeIds.FreeformBlock,
-            BlockName = "Test freeform content block from the tests",
-            CreateContentBlocksInOriginalFolder = true,
-            ContentSuffix = "testsuffx",
-            CategoryId = "1326002",
-            Content = new FileReference { Name = "test.html" }
-        };
-
-        // Act
-        var result = await actions.CreateContentBlock(request);
-
-        // Assert
-        PrintResult(result);
-        Assert.IsNotNull(result);
-    }
-
-    [TestMethod]
-    public async Task DownloadContentBlock_IsSuccess()
-    {
-        // Arrange
-        var actions = new ContentActions(InvocationContext, FileManager);
-        var blockInput = new ContentBlockIdentifier { ContentBlockId = "945692" };
-        var input = new DownloadContentBlockRequest
-        {
-
-        };
-
-        // Act
-        var result = await actions.DownloadContentBlock(blockInput, input);
-
-        // Assert
-        Console.WriteLine(result.Content.Name);
-        Assert.IsNotNull(result.Content);
-    }
-
-    [TestMethod]
-    public async Task DownloadEmail_IsSuccess()
-    {
-        // Arrange
-        var actions = new ContentActions(InvocationContext, FileManager);
-        var emailId = new EmailIdentifier { EmailId = "940892" };
-        var request = new DownloadEmailRequest 
-        {
-            //IgnoreBlocksInFolderIds = ["1328312"],
-        };
-
-        // Act
-        var result = await actions.DownloadEmail(emailId, request);
-
-        // Assert
-        Assert.IsNotNull(result.Content);
-        Console.WriteLine(result.Content.Name);
-    }
-
-    [TestMethod]
-    public async Task CreateEmail_ReturnsCreatedAsset()
-    {
-        // Arrange
-        var actions = new ContentActions(InvocationContext, FileManager);
-        var request = new UploadEmailRequest
-        {
-            Content = new FileReference { Name = "test.html" },
-            EmailName = "test context suffixes",
-            CategoryId = "1326002",
-            CreateContentBlocksInOriginalFolder = true,
-            ContentSuffix = "(de-AT)"
-            //ScriptVariableNames =   [   "chkey",           "@jobtype",         "test"                  ],
-            //ScriptVariableValues =  [   "updatedChKey",    "updatedJobType",   "this will not update"  ]
-        };
-
-        // Act
-        var result = await actions.CreateEmail(request);
-
-        // Assert
-        PrintResult(result);
-        Assert.IsNotNull(result);
-    }
-
-    [TestMethod]
-    public async Task UpdateEmail_ReturnsUpdatedEmail()
-    {
-        // Arrange
-        var actions = new ContentActions(InvocationContext, FileManager);
-        var emailId = new OptionalEmailIdentifier { /*EmailId = "940892"*/ };
-        var input = new UpdateEmailRequest
-        {
-            Content = new FileReference { Name = "test.html" },
-            //SubjectLine = "overwritten"
-        };
-
-        // Act
-        var result = await actions.UpdateEmail(emailId, input);
-
-        // Assert
-        PrintResult(result);
-        Assert.IsNotNull(result);
-    }
-
+        
     [TestMethod]
     public async Task GetContentIdFromFile_ReturnsContentId()
     {
         // Arrange
-        var action = new ContentActions(InvocationContext, FileManager);
         var input = new GetContentIdFromFileRequest
         {
             Content = new FileReference { Name = "test.html" }
         };
 
         // Act
-        var result = await action.GetContentIdFromFile(input);
+        var result = await _actions.GetContentIdFromFile(input);
 
         // Assert
         Console.WriteLine(result.ContentId);

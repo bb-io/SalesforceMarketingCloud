@@ -120,10 +120,7 @@ public static class ContentBlockHelper
         doc.OptionFixNestedTags = true;
         doc.LoadHtml(html);
 
-        var blockNodes = doc.DocumentNode.SelectNodes(
-            $"//{CustomHtmlTagNames.ContentBlock}[starts-with(@id, '{BlackbirdMetadataIds.ContentBlockId}-')]"
-        );
-
+        var blockNodes = doc.DocumentNode.SelectNodes($"//{CustomHtmlTagNames.ContentBlock}[@id]");
         if (blockNodes == null)
             return html;
 
@@ -135,7 +132,7 @@ public static class ContentBlockHelper
 
         foreach (var node in sortedNodes)
         {
-            string originalId = node.Id.Replace($"{BlackbirdMetadataIds.ContentBlockId}-", "");
+            string originalId = node.Id;
             if (uploadedBlocksCache.TryGetValue(originalId, out string? existingNewAssetId))
             {
                 ReplaceNodeWithReference(doc, node, existingNewAssetId);
@@ -181,10 +178,12 @@ public static class ContentBlockHelper
         return doc.DocumentNode.OuterHtml;
     }
 
-    public static string WrapBlockInTag(string blockId, string blockContent)
+    public static string WrapBlockInTag(string blockId, string blockContent, bool isRoot = false)
     {
-        return 
-            $@"<{CustomHtmlTagNames.ContentBlock} id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">" +
+        string rootAttr = isRoot ? @" data-root=""true""" : string.Empty;
+
+        return
+            $@"<{CustomHtmlTagNames.ContentBlock} id=""{blockId}""{rootAttr}>" +
             $"{blockContent}" +
             $"</{CustomHtmlTagNames.ContentBlock}>";
     }
@@ -194,8 +193,8 @@ public static class ContentBlockHelper
         var doc = new HtmlDocument();
         doc.LoadHtml(blockContent);
 
-        var rootNode = doc.DocumentNode.SelectSingleNode($"//{CustomHtmlTagNames.ContentBlock}") ?? 
-            throw new PluginMisconfigurationException("The file is missing the root blackbird-content-block tag");
+        var rootNode = doc.DocumentNode.SelectSingleNode($"//{CustomHtmlTagNames.ContentBlock}[@data-root='true']") ??
+            throw new PluginMisconfigurationException($"The file is missing the root '{CustomHtmlTagNames.ContentBlock}' tag");
 
         return rootNode.InnerHtml;
     }
@@ -208,9 +207,7 @@ public static class ContentBlockHelper
         doc.OptionFixNestedTags = true;
         doc.LoadHtml(html);
 
-        var blockNodes = doc.DocumentNode.SelectNodes(
-            $"//{CustomHtmlTagNames.ContentBlock}[starts-with(@id, '{BlackbirdMetadataIds.ContentBlockId}-')]"
-        );
+        var blockNodes = doc.DocumentNode.SelectNodes($"//{CustomHtmlTagNames.ContentBlock}[@id]");
 
         if (blockNodes == null)
             return html;
@@ -222,7 +219,7 @@ public static class ContentBlockHelper
         var updatedBlocksCache = new HashSet<string>();
         foreach (var node in sortedNodes)
         {
-            string assetId = node.Id.Replace($"{BlackbirdMetadataIds.ContentBlockId}-", "");
+            string assetId = node.Id;
 
             if (updatedBlocksCache.Contains(assetId))
             {

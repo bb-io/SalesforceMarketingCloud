@@ -1,7 +1,8 @@
 ﻿using Apps.SalesforceMarketing.Models.Entities.Asset;
+using Apps.SalesforceMarketing.Models.Response.Content;
 using Blackbird.Applications.Sdk.Common;
 
-namespace Apps.SalesforceMarketing.Models.Response.Content;
+namespace Apps.SalesforceMarketing.Models.Response.Email;
 
 public class GetEmailDetailsResponse(AssetEntity entity) : GetContentResponse(entity)
 {
