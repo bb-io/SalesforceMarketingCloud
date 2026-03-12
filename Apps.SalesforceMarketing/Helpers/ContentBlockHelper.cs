@@ -193,8 +193,8 @@ public static class ContentBlockHelper
         var doc = new HtmlDocument();
         doc.LoadHtml(blockContent);
 
-        var rootNode = doc.DocumentNode.SelectSingleNode($"//{CustomHtmlTagNames.ContentBlock}") ?? 
-            throw new PluginMisconfigurationException("The file is missing the root blackbird-content-block tag");
+        var rootNode = doc.DocumentNode.SelectSingleNode($"//{CustomHtmlTagNames.ContentBlock}[@data-root='true']") ??
+            throw new PluginMisconfigurationException($"The file is missing the root '{CustomHtmlTagNames.ContentBlock}' tag");
 
         return rootNode.InnerHtml;
     }
