@@ -178,10 +178,12 @@ public static class ContentBlockHelper
         return doc.DocumentNode.OuterHtml;
     }
 
-    public static string WrapBlockInTag(string blockId, string blockContent)
+    public static string WrapBlockInTag(string blockId, string blockContent, bool isRoot = false)
     {
-        return 
-            $@"<{CustomHtmlTagNames.ContentBlock} id=""{blockId}"">" +
+        string rootAttr = isRoot ? @" data-root=""true""" : string.Empty;
+
+        return
+            $@"<{CustomHtmlTagNames.ContentBlock} id=""{blockId}""{rootAttr}>" +
             $"{blockContent}" +
             $"</{CustomHtmlTagNames.ContentBlock}>";
     }

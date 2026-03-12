@@ -41,7 +41,7 @@ public class ContentBlockActions(InvocationContext invocationContext, IFileManag
                 input.IgnoreBlocksInFolderIds);
         }
 
-        content = ContentBlockHelper.WrapBlockInTag(entity.Id, content);
+        content = ContentBlockHelper.WrapBlockInTag(entity.Id, content, isRoot: true);
         content = ScriptHelper.WrapAmpScriptBlocks(content);
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));

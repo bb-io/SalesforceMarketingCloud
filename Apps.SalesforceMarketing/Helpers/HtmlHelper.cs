@@ -47,7 +47,6 @@ public static class HtmlHelper
         foreach (var knownContentId in BlackbirdMetadataIds.ContentTypeIds)
         {
             var metaNode = doc.DocumentNode.SelectSingleNode($"//meta[@name='{knownContentId}']");
-
             if (metaNode != null)
             {
                 string contentValue = metaNode.GetAttributeValue("content", string.Empty);
@@ -56,8 +55,7 @@ public static class HtmlHelper
             }
         }
 
-        var rootBlockNode = doc.DocumentNode.SelectSingleNode("//blackbird-content-block[not(ancestor::blackbird-content-block)]");
-
+        var rootBlockNode = doc.DocumentNode.SelectSingleNode("//blackbird-content-block[@data-root='true']");
         if (rootBlockNode != null)
         {
             string idAttribute = rootBlockNode.GetAttributeValue("id", string.Empty);
