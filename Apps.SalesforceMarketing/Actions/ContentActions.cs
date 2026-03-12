@@ -54,8 +54,10 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         string html = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
         string contentId = HtmlHelper.ExtractContentId(html) ?? 
             throw new PluginMisconfigurationException(
-                $"No content ID was found in the input file. " +
-                $"Known content metadata identifiers: {string.Join(" ;", BlackbirdMetadataIds.ContentTypeIds)}");
+                "No content ID was found in the input file. " +
+                "The file must contain either a valid metadata tag " +
+                $"(known identifiers: {string.Join(", ", BlackbirdMetadataIds.ContentTypeIds)} " +
+                $"or a root {BlackbirdMetadataIds.ContentBlockId} tag with an 'id' attribute)");
 
         return new(contentId);
     }
