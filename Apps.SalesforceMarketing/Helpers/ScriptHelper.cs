@@ -1,4 +1,5 @@
 ﻿using Apps.SalesforceMarketing.Constants;
+using Apps.SalesforceMarketing.Extensions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using HtmlAgilityPack;
 using System.Net;
@@ -11,67 +12,67 @@ public static class ScriptHelper
 {
     private static readonly Regex AmpScriptBlockRegex = new Regex(
         @"(?is)%%\[.*?\]%%|%%=\s*ContentBlockBy(?:ID|Key|Name)\s*\(.*?\)\s*=%%",
-        RegexOptions.Compiled
-    );
+        RegexOptions.Compiled); 
+
+    private static readonly Regex AmpScriptStringAssignmentRegex = new Regex(
+        @"SET\s+(@\w+)\s*=\s*(['""])(.*?)\2",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    public static IEnumerable<string> FindVariablesWithStringValues(string html)
+    {
+        var matches = AmpScriptStringAssignmentRegex.Matches(html);
+        var variables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (Match match in matches)
+        {
+            var content = match.Groups[3].Value;
+            if (!string.IsNullOrWhiteSpace(content) && !content.StartsWith(BlackbirdMetadataIds.AmpScriptVar))
+                variables.Add(match.Groups[1].Value);
+        }
+
+        return variables;
+    }
 
     public static string ExtractVariables(string html, IEnumerable<string> variableNames, string? explicitMetadataId = null)
     {
         if (variableNames == null || !variableNames.Any())
-            return html; 
-        
-        var distinctVariables = variableNames
-            .Where(v => !string.IsNullOrWhiteSpace(v))
-            .Distinct(StringComparer.OrdinalIgnoreCase);
+            return html;
 
-        var sbHtml = new StringBuilder(html);
+        var targetVars = new HashSet<string>(
+            variableNames.Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => v.EnsureStartsWith("@")),
+            StringComparer.OrdinalIgnoreCase);
+
         var translationDivs = new StringBuilder();
-
         int globalCounter = 1;
 
-        foreach (var rawVariableName in distinctVariables)
+        string result = AmpScriptStringAssignmentRegex.Replace(html, match =>
         {
-            if (string.IsNullOrWhiteSpace(rawVariableName))
-                continue;
+            var varName = match.Groups[1].Value;
 
-            string normalizedVarName = $"@{rawVariableName.TrimStart('@')}";
-            string cleanVarName = normalizedVarName.TrimStart('@');
+            if (!targetVars.Contains(varName))
+                return match.Value;
 
+            var quote = match.Groups[2].Value;
+            var content = match.Groups[3].Value;
+
+            if (string.IsNullOrWhiteSpace(content) || content.StartsWith(BlackbirdMetadataIds.AmpScriptVar))
+                return match.Value;
+
+            var prefix = match.Value.Substring(0, match.Groups[2].Index - match.Index);
+
+            string cleanVarName = varName.TrimStart('@');
             string metadataId = explicitMetadataId ?? $"{BlackbirdMetadataIds.AmpScriptVar}-{cleanVarName}";
+            string id = $"{metadataId}-{globalCounter++}";
+            string token = $"[[{id}]]";
 
-            var assignmentRegex = new Regex(
-                $@"(?i)(SET\s+{Regex.Escape(normalizedVarName)}\s*=\s*)(['""])(.*?)\2",
-                RegexOptions.Compiled
-            );
+            translationDivs.AppendLine($"<div id=\"{id}\">{content}</div>");
 
-            var matches = assignmentRegex.Matches(sbHtml.ToString());
-
-            if (matches.Count == 0) continue;
-
-            for (int i = matches.Count - 1; i >= 0; i--)
-            {
-                var m = matches[i];
-
-                var prefix = m.Groups[1].Value;
-                var quote = m.Groups[2].Value;
-                var content = m.Groups[3].Value; 
-                
-                if (string.IsNullOrWhiteSpace(content) || content.StartsWith("[[blackbird-"))
-                    continue;
-
-                string id = $"{metadataId}-{globalCounter++}";
-                string token = $"[[{id}]]";
-
-                sbHtml.Remove(m.Index, m.Length);
-                sbHtml.Insert(m.Index, $"{prefix}{quote}{token}{quote}");
-
-                translationDivs.AppendLine($"<div id=\"{id}\">{content}</div>");
-            }
-        }
+            return $"{prefix}{quote}{token}{quote}";
+        });
 
         if (globalCounter == 1)
             return html;
 
-        string result = sbHtml.ToString();
         var bodyMatch = Regex.Match(result, "<body[^>]*>", RegexOptions.IgnoreCase);
 
         if (bodyMatch.Success)
