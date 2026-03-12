@@ -42,13 +42,19 @@ To retrieve the `Member ID`, click your username in the top-right corner of the 
 ### Content
 
 - **Search content**. Search content (emails and content blocks) with specific criteria.
+- **Get content ID from a file**. Get content ID from file metadata.
+
+### Emails
+
 - **Get email details**. Get details of a specific email.
+- **Download email**. Download email content.
+- **Update email**. Update existing email from file.
+- **Create new email**. Create new email from file.
+
+### Content blocks
+
 - **Download content block**. Download content block content.
 - **Create content block**. Create a new content block.
-- **Download email**. Download email content.
-- **Create new email**. Create new email from file.
-- **Update email**. Update existing email from file.
-- **Get content ID from a file**. Get content ID from file metadata.
 
 ## Events
 

@@ -1,7 +1,7 @@
 ﻿using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Files;
 
-namespace Apps.SalesforceMarketing.Models.Request.Content;
+namespace Apps.SalesforceMarketing.Models.Request.Email;
 
 public class UpdateEmailRequest
 {
