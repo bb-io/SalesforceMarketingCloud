@@ -15,7 +15,21 @@ public class DownloadEmailRequest
     [FileDataSource(typeof(CategoryDataHandler))]
     public IEnumerable<string>? IgnoreBlocksInFolderIds { get; set; }
 
-    [Display("AMPscript variables to extract",
+    [Display("Specific AMPscript variables to extract",
         Description = "List of variable names (e.g. @VarName or VarName) to extract into translatable <div> tags.")]
     public IEnumerable<string>? ScriptVariablesToExtract { get; set; }
+
+    [Display("Extract all AMPscript variables", 
+        Description = "Extract all AMPscript variables into translatable <div> tags. Default is false.")]
+    public bool? ExtractAllScriptVariables { get; set; }
+
+    [Display("Specific AMPscript variables to ignore", 
+        Description = "When extracting all variables, specify which ones should not be placed in translatable <div> tags.")]
+    public IEnumerable<string>? ScriptVariablesToIgnore { get; set; }
+
+    public DownloadEmailRequest ApplyDefaultValues()
+    {
+        ExtractAllScriptVariables ??= false;
+        return this;
+    }
 }

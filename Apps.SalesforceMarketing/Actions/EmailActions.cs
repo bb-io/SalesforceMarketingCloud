@@ -60,6 +60,8 @@ public class EmailActions(InvocationContext invocationContext, IFileManagementCl
         [ActionParameter] EmailIdentifier emailId,
         [ActionParameter] DownloadEmailRequest input)
     {
+        input.ApplyDefaultValues();
+
         var request = new RestRequest($"asset/v1/content/assets/{emailId.EmailId}", Method.Get);
         var entity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
 
@@ -86,7 +88,22 @@ public class EmailActions(InvocationContext invocationContext, IFileManagementCl
 
         htmlContent = ScriptHelper.ExtractVariables(htmlContent, ["@subjectLine"], BlackbirdMetadataIds.SubjectLine);
 
-        if (input.ScriptVariablesToExtract != null && input.ScriptVariablesToExtract.Any())
+        if (input.ExtractAllScriptVariables == true)
+        {
+            var allVariables = ScriptHelper.FindVariablesWithStringValues(htmlContent);
+
+            var varsToIgnore = new HashSet<string>(
+                (input.ScriptVariablesToIgnore ?? []).Select(v => v.EnsureStartsWith("@")), 
+                StringComparer.OrdinalIgnoreCase)
+            {
+                "@subjectLine"
+            };
+
+            var varsToExtract = allVariables.Where(v => !varsToIgnore.Contains(v)).ToList();
+            if (varsToExtract.Count != 0)
+                htmlContent = ScriptHelper.ExtractVariables(htmlContent, varsToExtract);
+        }
+        else if (input.ScriptVariablesToExtract != null && input.ScriptVariablesToExtract.Any())
             htmlContent = ScriptHelper.ExtractVariables(htmlContent, input.ScriptVariablesToExtract);
 
         htmlContent = ScriptHelper.WrapAmpScriptBlocks(htmlContent);

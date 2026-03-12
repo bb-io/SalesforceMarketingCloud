@@ -7,4 +7,12 @@ public static class StringExtensions
         input = input.Replace(' ', '_');
         return $"{input}.html";
     }
+
+    public static string EnsureStartsWith(this string input, string prefix)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return input;
+
+        return input.StartsWith(prefix) ? input : prefix + input;
+    }
 }
