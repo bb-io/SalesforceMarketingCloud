@@ -120,10 +120,7 @@ public static class ContentBlockHelper
         doc.OptionFixNestedTags = true;
         doc.LoadHtml(html);
 
-        var blockNodes = doc.DocumentNode.SelectNodes(
-            $"//{CustomHtmlTagNames.ContentBlock}[starts-with(@id, '{BlackbirdMetadataIds.ContentBlockId}-')]"
-        );
-
+        var blockNodes = doc.DocumentNode.SelectNodes($"//{CustomHtmlTagNames.ContentBlock}[@id]");
         if (blockNodes == null)
             return html;
 
@@ -135,7 +132,7 @@ public static class ContentBlockHelper
 
         foreach (var node in sortedNodes)
         {
-            string originalId = node.Id.Replace($"{BlackbirdMetadataIds.ContentBlockId}-", "");
+            string originalId = node.Id;
             if (uploadedBlocksCache.TryGetValue(originalId, out string? existingNewAssetId))
             {
                 ReplaceNodeWithReference(doc, node, existingNewAssetId);
@@ -184,7 +181,7 @@ public static class ContentBlockHelper
     public static string WrapBlockInTag(string blockId, string blockContent)
     {
         return 
-            $@"<{CustomHtmlTagNames.ContentBlock} id=""{BlackbirdMetadataIds.ContentBlockId}-{blockId}"">" +
+            $@"<{CustomHtmlTagNames.ContentBlock} id=""{blockId}"">" +
             $"{blockContent}" +
             $"</{CustomHtmlTagNames.ContentBlock}>";
     }
@@ -208,9 +205,7 @@ public static class ContentBlockHelper
         doc.OptionFixNestedTags = true;
         doc.LoadHtml(html);
 
-        var blockNodes = doc.DocumentNode.SelectNodes(
-            $"//{CustomHtmlTagNames.ContentBlock}[starts-with(@id, '{BlackbirdMetadataIds.ContentBlockId}-')]"
-        );
+        var blockNodes = doc.DocumentNode.SelectNodes($"//{CustomHtmlTagNames.ContentBlock}[@id]");
 
         if (blockNodes == null)
             return html;
@@ -222,7 +217,7 @@ public static class ContentBlockHelper
         var updatedBlocksCache = new HashSet<string>();
         foreach (var node in sortedNodes)
         {
-            string assetId = node.Id.Replace($"{BlackbirdMetadataIds.ContentBlockId}-", "");
+            string assetId = node.Id;
 
             if (updatedBlocksCache.Contains(assetId))
             {
