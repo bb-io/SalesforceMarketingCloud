@@ -43,7 +43,18 @@ public class AssetFilterBuilder
         return AddCondition(property, "mustContain", value);
     }
 
-    public JObject? Build()
+    public JObject BuildPayload()
+    {
+        var body = new JObject();
+        var query = Build();
+
+        if (query != null)
+            body["query"] = query;
+
+        return body;
+    }
+
+    private JObject? Build()
     {
         if (_filters.Count == 0) 
             return null;

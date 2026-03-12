@@ -1,6 +1,7 @@
 ﻿using Apps.SalesforceMarketing.Constants;
 using Apps.SalesforceMarketing.Extensions;
 using Apps.SalesforceMarketing.Helpers;
+using Apps.SalesforceMarketing.Models;
 using Apps.SalesforceMarketing.Models.Entities.Asset;
 using Apps.SalesforceMarketing.Models.Identifiers;
 using Apps.SalesforceMarketing.Models.Identifiers.Optional;
@@ -21,6 +22,31 @@ namespace Apps.SalesforceMarketing.Actions;
 public class EmailActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) 
     : SalesforceInvocable(invocationContext)
 {
+    [Action("Find email by name", Description = "Find email ID using its name")]
+    public async Task<FindEmailByNameResponse> FindEmailByName([ActionParameter] FindEmailByNameRequest input)
+    {
+        input.ApplyDefaultValues();
+
+        var categoryIds = await CategoryHelper.GetCategoryIds(
+            Client,
+            input.CategoryId,
+            input.IncludeSubfolders
+        );
+
+        var query = new AssetFilterBuilder()
+            .WhereEquals("assetType.id", AssetTypeIds.HtmlEmail)
+            .WhereIn("category.id", categoryIds)
+            .WhereEquals("name", input.EmailName)
+            .BuildPayload();
+
+        var request = new RestRequest("asset/v1/content/assets/query", Method.Post)
+            .AddStringBody(query.ToString(), DataFormat.Json);
+
+        var response = await Client.ExecuteWithErrorHandling<ItemsWrapper<AssetEntity>>(request);
+        var entity = response.Items.FirstOrDefault();
+        return new(entity?.Id);
+    }
+
     [Action("Get email details", Description = "Get details of a specific email")]
     public async Task<GetEmailDetailsResponse> GetEmailDetails([ActionParameter] EmailIdentifier emailId)
     {

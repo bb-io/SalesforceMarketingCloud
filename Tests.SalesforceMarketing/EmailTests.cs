@@ -15,6 +15,24 @@ public class EmailTests : TestBase
     public EmailTests() => _actions = new EmailActions(InvocationContext, FileManager);
 
     [TestMethod]
+    public async Task FindEmailByName_ExistingEmail_ReturnsEmailId()
+    {
+        // Arrange
+        var input = new FindEmailByNameRequest 
+        { 
+            EmailName = "test",
+            CategoryId = "1326002"
+        };
+
+        // Act
+        var result = await _actions.FindEmailByName(input);
+
+        // Assert
+        Console.WriteLine(result.EmailId);
+        Assert.IsNotNull(result.EmailId);
+    }
+
+    [TestMethod]
     public async Task GetEmailDetails_ReturnsEmailMetadata()
     {
         // Arrange

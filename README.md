@@ -50,6 +50,7 @@ To retrieve the `Member ID`, click your username in the top-right corner of the 
 - **Download email**. Download email content.
 - **Update email**. Update existing email from file.
 - **Create new email**. Create new email from file.
+- **Find email**. Find email ID using its name.
 
 ### Content blocks
 

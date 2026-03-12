@@ -5,7 +5,6 @@ using Apps.SalesforceMarketing.Polling.Memory;
 using Apps.SalesforceMarketing.Polling.Request;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Common.Polling;
-using Newtonsoft.Json.Linq;
 using RestSharp;
 
 namespace Apps.SalesforceMarketing.Polling;
@@ -42,15 +41,10 @@ public class ContentPollingList(InvocationContext invocationContext) : Salesforc
             .WhereGreaterOrEqual("modifiedDate", pollingRequest.Memory.LastInteractionDate)
             .WhereIn("category.id", categoryIds)
             .WhereMustContains("name", input.NameContains)
-            .Build();
+            .BuildPayload();
 
-        var request = new RestRequest("asset/v1/content/assets/query", Method.Post);
-
-        var body = new JObject();
-        if (query != null)
-            body["query"] = query;
-
-        request.AddStringBody(body.ToString(), DataFormat.Json);
+        var request = new RestRequest("asset/v1/content/assets/query", Method.Post)
+            .AddStringBody(query.ToString(), DataFormat.Json);
 
         var entities = await Client.PaginatePost<AssetEntity>(request);
         entities = entities.FilterExcludedNames(input.NameDoesntContain, e => e.Name);

@@ -8,7 +8,6 @@ using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
-using Newtonsoft.Json.Linq;
 using RestSharp;
 
 namespace Apps.SalesforceMarketing.Actions;
@@ -36,15 +35,10 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             .WhereLessOrEqual("modifiedDate", input.UpdatedToDate)
             .WhereIn("category.id", categoryIds)
             .WhereMustContains("name", input.NameContains)
-            .Build();
+            .BuildPayload();
 
-        var request = new RestRequest("asset/v1/content/assets/query", Method.Post);
-
-        var body = new JObject();
-        if (query != null)
-            body["query"] = query;
-
-        request.AddStringBody(body.ToString(), DataFormat.Json);
+        var request = new RestRequest("asset/v1/content/assets/query", Method.Post)
+            .AddStringBody(query.ToString(), DataFormat.Json);
 
         var entities = await Client.PaginatePost<AssetEntity>(request);
         entities = entities.FilterExcludedNames(input.NameDoesntContain, e => e.Name);
