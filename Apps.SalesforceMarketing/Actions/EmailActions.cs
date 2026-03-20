@@ -60,57 +60,57 @@ public class EmailActions(InvocationContext invocationContext, IFileManagementCl
         [ActionParameter] EmailIdentifier emailId,
         [ActionParameter] DownloadEmailRequest input)
     {
-        input.ApplyDefaultValues();
+        input.ApplyDefaultValues().Validate();
 
         var request = new RestRequest($"asset/v1/content/assets/{emailId.EmailId}", Method.Get);
         var entity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
 
-        if (entity.Views?.Html == null)
+        if (entity.Views == null)
         {
             throw new PluginMisconfigurationException(
-                $"The asset '{entity.Name}' does not contain valid HTML content. " +
-                "Please ensure you have selected a valid 'Content Builder Email' and not a Template, Content Block or Legacy Email"
-            );
+                $"The asset '{entity.Name}' does not contain any views. Please ensure your email has content");
         }
+        
+        string? htmlContent = input.DownloadHtmlEmailContent == true ? entity.Views.Html.Content : null;
+        string? plaintextContent = input.DownloadPlaintextEmailContent == true ? entity.Views.Text.Content : null;
 
-        string htmlContent = entity.Views.Html.Content;
-        htmlContent = await ContentBlockHelper.ExpandContentBlocks(
-            htmlContent,
+        string resultContent = HtmlHelper.BuildMasterEmail(htmlContent, plaintextContent);
+        resultContent = await ContentBlockHelper.ExpandContentBlocks(
+            resultContent,
             Client,
             input.ContentBlockIdsToIgnore,
             input.IgnoreBlocksInFolderIds);
 
         string? subjectLine = entity.Views.SubjectLine?.Content;
         string? preheader = entity.Views.Preheader?.Content;
-        htmlContent = HtmlHelper.InjectDiv(htmlContent, subjectLine, BlackbirdMetadataIds.SubjectLine);
-        htmlContent = HtmlHelper.InjectDiv(htmlContent, preheader, BlackbirdMetadataIds.Preheader);
-        htmlContent = HtmlHelper.InjectHeadMetadata(htmlContent, entity.Id, BlackbirdMetadataIds.EmailId);
 
-        htmlContent = ScriptHelper.ExtractVariables(htmlContent, ["@subjectLine"], BlackbirdMetadataIds.SubjectLine);
+        resultContent = HtmlHelper.InjectDiv(resultContent, subjectLine, BlackbirdMetadataIds.SubjectLine);
+        resultContent = HtmlHelper.InjectDiv(resultContent, preheader, BlackbirdMetadataIds.Preheader);
+        resultContent = HtmlHelper.InjectHeadMetadata(resultContent, entity.Id, BlackbirdMetadataIds.EmailId);
+
+        resultContent = ScriptHelper.ExtractVariables(resultContent, ["@subjectLine"], BlackbirdMetadataIds.SubjectLine);
 
         if (input.ExtractAllScriptVariables == true)
         {
-            var allVariables = ScriptHelper.FindVariablesWithStringValues(htmlContent);
+            var allVariables = ScriptHelper.FindVariablesWithStringValues(resultContent);
+            var variablesWithAt = (input.ScriptVariablesToIgnore ?? []).Select(v => v.EnsureStartsWith("@"));
 
-            var varsToIgnore = new HashSet<string>(
-                (input.ScriptVariablesToIgnore ?? []).Select(v => v.EnsureStartsWith("@")), 
-                StringComparer.OrdinalIgnoreCase)
+            var varsToIgnore = new HashSet<string>(variablesWithAt, StringComparer.OrdinalIgnoreCase)
             {
                 "@subjectLine"
             };
 
             var varsToExtract = allVariables.Where(v => !varsToIgnore.Contains(v)).ToList();
             if (varsToExtract.Count != 0)
-                htmlContent = ScriptHelper.ExtractVariables(htmlContent, varsToExtract);
+                resultContent = ScriptHelper.ExtractVariables(resultContent, varsToExtract);
         }
         else if (input.ScriptVariablesToExtract != null && input.ScriptVariablesToExtract.Any())
-            htmlContent = ScriptHelper.ExtractVariables(htmlContent, input.ScriptVariablesToExtract);
+            resultContent = ScriptHelper.ExtractVariables(resultContent, input.ScriptVariablesToExtract);
 
-        htmlContent = ScriptHelper.WrapAmpScriptBlocks(htmlContent);
+        resultContent = ScriptHelper.WrapAmpScriptBlocks(resultContent);
 
-        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent));
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(resultContent));
         var file = await fileManagementClient.UploadAsync(stream, "application/html", entity.Name.ToHtmlFileName());
-
         return new(file);
     }
 

@@ -53,7 +53,9 @@ public class EmailTests : TestBase
         var emailId = new EmailIdentifier { EmailId = "940892" };
         var request = new DownloadEmailRequest
         {
-            //IgnoreBlocksInFolderIds = ["1328312"],
+            DownloadHtmlEmailContent = true,
+            DownloadPlaintextEmailContent = true,
+            ExtractAllScriptVariables = true,
         };
 
         // Act
