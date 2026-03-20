@@ -98,46 +98,4 @@ public static class HtmlHelper
 
         return new(html, null);
     }
-
-    public static string BuildMasterEmail(string? htmlContent, string? plaintextContent)
-    {
-        var doc = new HtmlDocument();
-        var htmlNode = doc.CreateElement("html");
-        var headNode = doc.CreateElement("head");
-        var bodyNode = doc.CreateElement("body");
-
-        doc.DocumentNode.AppendChild(htmlNode);
-        htmlNode.AppendChild(headNode);
-        htmlNode.AppendChild(bodyNode);
-
-        if (!string.IsNullOrEmpty(htmlContent))
-        {
-            var sourceDoc = new HtmlDocument();
-            sourceDoc.LoadHtml(htmlContent);
-
-            var sourceHead = sourceDoc.DocumentNode.SelectSingleNode("//head");
-            if (sourceHead != null)
-                headNode.InnerHtml = sourceHead.InnerHtml;
-
-            var htmlViewDiv = doc.CreateElement("div");
-            htmlViewDiv.SetAttributeValue("id", BlackbirdMetadataIds.HtmlEmailView);
-
-            var sourceBody = sourceDoc.DocumentNode.SelectSingleNode("//body");
-            htmlViewDiv.InnerHtml = sourceBody != null ? sourceBody.InnerHtml : sourceDoc.DocumentNode.InnerHtml;
-
-            bodyNode.AppendChild(htmlViewDiv);
-        }
-
-        if (!string.IsNullOrEmpty(plaintextContent))
-        {
-            var textViewDiv = doc.CreateElement("div");
-
-            textViewDiv.SetAttributeValue("id", BlackbirdMetadataIds.PlainTextView);
-            textViewDiv.InnerHtml = plaintextContent;
-
-            bodyNode.AppendChild(textViewDiv);
-        }
-
-        return doc.DocumentNode.OuterHtml;
-    }
 }

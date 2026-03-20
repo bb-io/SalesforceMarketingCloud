@@ -12,6 +12,7 @@ using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Blackbird.Applications.Sdk.Utils.Extensions.Http;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using RestSharp;
 using System.Text;
@@ -71,10 +72,10 @@ public class EmailActions(InvocationContext invocationContext, IFileManagementCl
                 $"The asset '{entity.Name}' does not contain any views. Please ensure your email has content");
         }
         
-        string? htmlContent = input.DownloadHtmlEmailContent == true ? entity.Views.Html.Content : null;
-        string? plaintextContent = input.DownloadPlaintextEmailContent == true ? entity.Views.Text.Content : null;
+        string? htmlContent = input.DownloadHtmlEmailContent == true ? entity.Views.Html?.Content : null;
+        string? plaintextContent = input.DownloadPlaintextEmailContent == true ? entity.Views.Text?.Content : null;
 
-        string resultContent = HtmlHelper.BuildMasterEmail(htmlContent, plaintextContent);
+        string resultContent = EmailSplitter.MergeViews(htmlContent, plaintextContent);
         resultContent = await ContentBlockHelper.ExpandContentBlocks(
             resultContent,
             Client,
@@ -135,28 +136,28 @@ public class EmailActions(InvocationContext invocationContext, IFileManagementCl
             input.CreateContentBlocksInOriginalFolder ?? false,
             input.ContentSuffix);
 
+        var extractedViews = EmailSplitter.ExtractViews(html);
         string subject =
             input.SubjectLine ??
             processedData.ExtractedSubject ??
             throw new PluginMisconfigurationException(
                 "Email subject line is not found in the input file. Provide it in the input or include it in the file"
             );
-        string? preheader = processedData.ExtractedPreheader;
 
-        var request = new RestRequest("asset/v1/content/assets", Method.Post);
-        var body = new
+        var body = new AssetEntity
         {
-            name = finalEmailName,
-            assetType = new { id = AssetTypeIds.HtmlEmail },
-            views = new
+            Name = finalEmailName,
+            AssetType = new AssetType { Id = AssetTypeIds.HtmlEmail },
+            Category = string.IsNullOrEmpty(input.CategoryId) ? null : new AssetCategory { Id = input.CategoryId },
+            Views = new AssetViews
             {
-                html = new { content = html },
-                subjectline = new { content = subject },
-                preheader = new { content = preheader },
-            },
-            category = !string.IsNullOrEmpty(input.CategoryId) ? new { id = int.Parse(input.CategoryId) } : null
-        };
-        request.AddJsonBody(body);
+                SubjectLine = new AssetView { Content = subject },
+                Html = string.IsNullOrEmpty(extractedViews.HtmlView) ? null : new AssetView { Content = extractedViews.HtmlView },
+                Text = string.IsNullOrEmpty(extractedViews.PlaintextView) ? null : new AssetView { Content = extractedViews.PlaintextView },
+                Preheader = string.IsNullOrEmpty(processedData.ExtractedPreheader) ? null : new AssetView { Content = processedData.ExtractedPreheader }
+            }
+        }; 
+        var request = new RestRequest("asset/v1/content/assets", Method.Post).AddJsonBody(body);
 
         var createdEntity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
         return new(createdEntity);
@@ -173,27 +174,28 @@ public class EmailActions(InvocationContext invocationContext, IFileManagementCl
             HtmlHelper.ExtractHeadMetadata(rawHtml, BlackbirdMetadataIds.EmailId) ??
             emailInput.EmailId ??
             throw new PluginMisconfigurationException(
-                "Email ID is not found in the input file. Provide it in the input or include it in the file"
-            );
+                "Email ID is not found in the input file. Provide it in the input or include it in the file");
 
         var processedData = ProcessBaseEmailHtml(rawHtml, input.ScriptVariableNames, input.ScriptVariableValues);
         string html = processedData.ProcessedHtml;
 
         html = await ContentBlockHelper.UpdateContentBlocks(html, Client);
 
+        var extractedViews = EmailSplitter.ExtractViews(html);
         string? subjectLine = string.IsNullOrEmpty(input.SubjectLine) ? processedData.ExtractedSubject : input.SubjectLine;
-
-        var request = new RestRequest($"asset/v1/content/assets/{emailId}", Method.Patch);
-        var views = new Dictionary<string, object> { { "html", new { content = html } } };
-
-        if (!string.IsNullOrEmpty(subjectLine))
-            views.Add("subjectline", new { content = subjectLine });
-
-        if (!string.IsNullOrEmpty(processedData.ExtractedPreheader))
-            views.Add("preheader", new { content = processedData.ExtractedPreheader });
-
-        var body = new { views };
-        request.AddJsonBody(body);
+        
+        var body = new AssetEntity
+        {
+            Views = new AssetViews
+            {
+                SubjectLine = string.IsNullOrEmpty(subjectLine) ? null : new AssetView { Content = subjectLine },
+                Html = string.IsNullOrEmpty(extractedViews.HtmlView) ? null : new AssetView { Content = extractedViews.HtmlView },
+                Text = string.IsNullOrEmpty(extractedViews.PlaintextView) ? null : new AssetView { Content = extractedViews.PlaintextView },
+                Preheader = string.IsNullOrEmpty(processedData.ExtractedPreheader) ? null : new AssetView { Content = processedData.ExtractedPreheader }
+            }
+        }; 
+        var request = new RestRequest($"asset/v1/content/assets/{emailId}", Method.Patch)
+            .WithJsonBody(body, JsonSettings.Settings);
 
         var updatedEntity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
         return new(updatedEntity);
