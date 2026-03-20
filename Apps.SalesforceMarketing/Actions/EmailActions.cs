@@ -157,7 +157,8 @@ public class EmailActions(InvocationContext invocationContext, IFileManagementCl
                 Preheader = string.IsNullOrEmpty(processedData.ExtractedPreheader) ? null : new AssetView { Content = processedData.ExtractedPreheader }
             }
         }; 
-        var request = new RestRequest("asset/v1/content/assets", Method.Post).AddJsonBody(body);
+        var request = new RestRequest("asset/v1/content/assets", Method.Post)
+            .WithJsonBody(body, JsonSettings.Settings);
 
         var createdEntity = await Client.ExecuteWithErrorHandling<AssetEntity>(request);
         return new(createdEntity);
