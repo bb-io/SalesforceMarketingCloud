@@ -53,7 +53,9 @@ public class EmailTests : TestBase
         var emailId = new EmailIdentifier { EmailId = "940892" };
         var request = new DownloadEmailRequest
         {
-            //IgnoreBlocksInFolderIds = ["1328312"],
+            DownloadHtmlEmailContent = true,
+            DownloadPlaintextEmailContent = true,
+            ExtractAllScriptVariables = true,
         };
 
         // Act
@@ -71,10 +73,10 @@ public class EmailTests : TestBase
         var request = new UploadEmailRequest
         {
             Content = new FileReference { Name = "test.html" },
-            EmailName = "test context suffixes",
+            EmailName = "test email versions",
             CategoryId = "1326002",
             CreateContentBlocksInOriginalFolder = true,
-            ContentSuffix = "(de-AT)"
+            ContentSuffix = "(vt)"
             //ScriptVariableNames =   [   "chkey",           "@jobtype",         "test"                  ],
             //ScriptVariableValues =  [   "updatedChKey",    "updatedJobType",   "this will not update"  ]
         };

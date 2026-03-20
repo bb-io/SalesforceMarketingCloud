@@ -263,7 +263,8 @@ public static class ContentBlockHelper
 
         request.AddJsonBody(body);
 
-        return await client.ExecuteWithErrorHandling<AssetEntity>(request);
+        var response = await client.ExecuteWithErrorHandling<AssetEntity>(request);
+        return response;
     }
 
     private static async Task UpdateAsset(
