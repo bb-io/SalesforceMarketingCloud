@@ -42,6 +42,8 @@ public static class ScriptHelper
             variableNames.Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => v.EnsureStartsWith("@")),
             StringComparer.OrdinalIgnoreCase);
 
+        var contentToTokenMap = new Dictionary<string, string>();
+
         var translationDivs = new StringBuilder();
         int globalCounter = 1;
 
@@ -54,16 +56,20 @@ public static class ScriptHelper
 
             var quote = match.Groups[2].Value;
             var content = match.Groups[3].Value;
+            var prefix = match.Value.Substring(0, match.Groups[2].Index - match.Index);
 
             if (string.IsNullOrWhiteSpace(content) || content.StartsWith(BlackbirdMetadataIds.AmpScriptVar))
                 return match.Value;
 
-            var prefix = match.Value.Substring(0, match.Groups[2].Index - match.Index);
+            if (contentToTokenMap.TryGetValue(content, out string? existingToken))
+                return $"{prefix}{quote}{existingToken}{quote}";
 
             string cleanVarName = varName.TrimStart('@');
             string metadataId = explicitMetadataId ?? $"{BlackbirdMetadataIds.AmpScriptVar}-{cleanVarName}";
             string id = $"{metadataId}-{globalCounter++}";
             string token = $"[[{id}]]";
+
+            contentToTokenMap[content] = token;
 
             translationDivs.AppendLine($"<div id=\"{id}\">{content}</div>");
 
