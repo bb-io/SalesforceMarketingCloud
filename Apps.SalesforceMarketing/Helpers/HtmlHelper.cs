@@ -39,6 +39,19 @@ public static class HtmlHelper
         return metaNode?.GetAttributeValue("content", string.Empty);
     }
 
+    public static string DeleteHeadMetadata(string html, string metadataName)
+    {
+        var doc = new HtmlDocument();
+        doc.LoadHtml(html);
+
+        var metaTag = doc.DocumentNode.SelectSingleNode($"//meta[@name='{metadataName}']");
+        if (metaTag == null) 
+            return html;
+        
+        metaTag.Remove();
+        return doc.DocumentNode.OuterHtml;
+    }
+    
     public static string? ExtractContentId(string html)
     {
         var doc = new HtmlDocument();

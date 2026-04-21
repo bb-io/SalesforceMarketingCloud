@@ -11,15 +11,24 @@ using RestSharp;
 
 namespace Apps.SalesforceMarketing.Api;
 
-public class SalesforceClient : BlackBirdRestClient
+public class SalesforceClient(IEnumerable<AuthenticationCredentialsProvider> creds) : BlackBirdRestClient(new()
 {
-    public SalesforceClient(IEnumerable<AuthenticationCredentialsProvider> creds) : base(new()
+    BaseUrl = new Uri($"https://{creds.Get(CredsNames.Subdomain).Value}.rest.marketingcloudapis.com/"),
+})
+{
+    private string? _token;
+    
+    public override async Task<RestResponse> ExecuteWithErrorHandling(RestRequest request)
     {
-        BaseUrl = new Uri($"https://{creds.Get(CredsNames.Subdomain).Value}.rest.marketingcloudapis.com/"),
-    })
-    {
-        string token = GetAccessToken(creds).GetAwaiter().GetResult();
-        this.AddDefaultHeader("Authorization", $"Bearer {token}");
+        if (string.IsNullOrEmpty(_token))
+            _token = await GetAccessToken(creds);
+
+        var authParam = request.Parameters.FirstOrDefault(p => p.Name == "Authorization");
+        if (authParam != null)
+            request.RemoveParameter(authParam);
+        
+        request.AddHeader("Authorization", $"Bearer {_token}");
+        return await base.ExecuteWithErrorHandling(request);
     }
 
     public async Task<IEnumerable<T>> PaginatePost<T>(RestRequest request)
@@ -124,8 +133,9 @@ public class SalesforceClient : BlackBirdRestClient
         if (!response.IsSuccessful || response.Content == null)
             throw new PluginApplicationException($"Failed to authenticate. {response.Content}");
 
-        var data = JsonConvert.DeserializeObject<AuthResponse>(response.Content) 
-            ?? throw new PluginApplicationException("Auth response received, could not deserialize access token");
+        var data = JsonConvert.DeserializeObject<AuthResponse>(response.Content) ?? 
+                   throw new PluginApplicationException("Auth response received, could not deserialize access token");
+        
         return data.AccessToken;
     }
 
