@@ -50,7 +50,7 @@ public class EmailTests : TestBase
     public async Task DownloadEmail_IsSuccess()
     {
         // Arrange
-        var emailId = new EmailIdentifier { EmailId = "957371" };
+        var emailId = new EmailIdentifier { EmailId = "943023" };
         var request = new DownloadEmailRequest
         {
             DownloadHtmlEmailContent = true,
@@ -73,7 +73,7 @@ public class EmailTests : TestBase
         var request = new UploadEmailRequest
         {
             Content = new FileReference { Name = "test.html" },
-            EmailName = "test email versions 2",
+            EmailName = "test email newsletter",
             CategoryId = "1326002",
             //CreateContentBlocksInOriginalFolder = true,
             //ContentSuffix = "(vt)"

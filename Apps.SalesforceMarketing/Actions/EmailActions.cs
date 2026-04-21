@@ -207,6 +207,8 @@ public class EmailActions(InvocationContext invocationContext, IFileManagementCl
         IEnumerable<string>? scriptNames,
         IEnumerable<string>? scriptValues)
     {
+        html = HtmlHelper.DeleteHeadMetadata(html, BlackbirdMetadataIds.EmailId);
+        
         var (htmlWithoutSubject, extractedSubject) = HtmlHelper.ExtractAndDeleteDiv(html, BlackbirdMetadataIds.SubjectLine);
         html = htmlWithoutSubject;
 
