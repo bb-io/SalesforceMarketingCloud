@@ -172,8 +172,8 @@ public class EmailActions(InvocationContext invocationContext, IFileManagementCl
         string rawHtml = await FileContentHelper.GetHtmlFromFile(fileManagementClient, input.Content);
 
         string emailId =
-            HtmlHelper.ExtractHeadMetadata(rawHtml, BlackbirdMetadataIds.EmailId) ??
             emailInput.EmailId ??
+            HtmlHelper.ExtractHeadMetadata(rawHtml, BlackbirdMetadataIds.EmailId) ??
             throw new PluginMisconfigurationException(
                 "Email ID is not found in the input file. Provide it in the input or include it in the file");
 
