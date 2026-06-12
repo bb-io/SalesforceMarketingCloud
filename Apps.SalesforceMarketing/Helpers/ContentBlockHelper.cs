@@ -254,6 +254,7 @@ public static class ContentBlockHelper
         var body = new Dictionary<string, object>
         {
             { "name", name },
+            { "content", content },
             { "assetType", new { id = AssetTypeIds.HtmlBlock } },
             { "views", new { html = new { content } } }
         };
