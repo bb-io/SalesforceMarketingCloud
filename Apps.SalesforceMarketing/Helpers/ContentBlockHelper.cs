@@ -199,12 +199,17 @@ public static class ContentBlockHelper
         return rootNode.InnerHtml;
     }
 
-    public static async Task<string> UpdateContentBlocks(
+    public static async Task<string> UpsertContentBlocks(
         string html,
-        SalesforceClient client)
+        SalesforceClient client,
+        string? contentSuffix,
+        string? targetCategoryId,
+        bool keepOriginalFolders)
     {
-        var doc = new HtmlDocument();
-        doc.OptionFixNestedTags = true;
+        var doc = new HtmlDocument
+        {
+            OptionFixNestedTags = true
+        };
         doc.LoadHtml(html);
 
         var blockNodes = doc.DocumentNode.SelectNodes($"//{CustomHtmlTagNames.ContentBlock}[@id]");
@@ -216,22 +221,62 @@ public static class ContentBlockHelper
             .OrderByDescending(node => node.Ancestors(CustomHtmlTagNames.ContentBlock).Count())
             .ToList();
 
-        var updatedBlocksCache = new HashSet<string>();
+        var processedBlocksCache = new Dictionary<string, string>();
         foreach (var node in sortedNodes)
         {
-            string assetId = node.Id;
+            string sourceId = node.Id;
 
-            if (updatedBlocksCache.Contains(assetId))
+            if (processedBlocksCache.TryGetValue(sourceId, out string? targetId))
             {
-                ReplaceNodeWithReference(doc, node, assetId);
+                ReplaceNodeWithReference(doc, node, targetId);
                 continue;
             }
 
             string translatedContent = WebUtility.HtmlDecode(node.InnerHtml.Trim());
-            await UpdateAsset(client, assetId, translatedContent);
-            updatedBlocksCache.Add(assetId);
+            
+            var sourceAsset = await GetAssetById(client, sourceId);
+            string? originalName = sourceAsset?.Name;
+            
+            string? categoryToUse = targetCategoryId;
+            if (keepOriginalFolders && sourceAsset?.Category != null)
+                categoryToUse = sourceAsset.Category.Id;
 
-            ReplaceNodeWithReference(doc, node, assetId);
+            string targetName;
+            if (!string.IsNullOrWhiteSpace(contentSuffix) && !string.IsNullOrWhiteSpace(originalName))
+                targetName = $"{originalName} {contentSuffix}".Trim();
+            else
+            {
+                // Random string, later we're passing it to find the asset.
+                // We can't pass an empty string, so we need something to get passed to the GetAssetByName method
+                // so that it safely returns null
+                targetName = $"FallbackSearch_{sourceId}_{Guid.NewGuid()}"; 
+            }
+
+            var existingTargetBlock = await GetAssetByName(client, targetName, null);
+
+            if (existingTargetBlock != null)
+            {
+                targetId = existingTargetBlock.Id;
+                await UpdateAsset(client, targetId, translatedContent);
+            }
+            else
+            {
+                string newBlockName;
+                if (!string.IsNullOrWhiteSpace(contentSuffix) && !string.IsNullOrWhiteSpace(originalName))
+                    newBlockName = $"{originalName} {contentSuffix} - {DateTime.UtcNow.Ticks}".Trim();
+                else
+                {
+                    newBlockName = $"(UpdateFallback - Block {sourceId} - {DateTime.UtcNow.Ticks})";
+                    if (!string.IsNullOrWhiteSpace(contentSuffix))
+                        newBlockName = $"{newBlockName} {contentSuffix}".Trim();
+                }
+
+                var newAsset = await CreateNewAsset(client, newBlockName, translatedContent, categoryToUse);
+                targetId = newAsset.Id;
+            }
+
+            processedBlocksCache[sourceId] = targetId;
+            ReplaceNodeWithReference(doc, node, targetId);
         }
 
         return doc.DocumentNode.OuterHtml;

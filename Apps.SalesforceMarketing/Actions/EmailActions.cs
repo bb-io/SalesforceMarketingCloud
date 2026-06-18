@@ -180,7 +180,12 @@ public class EmailActions(InvocationContext invocationContext, IFileManagementCl
         var processedData = ProcessBaseEmailHtml(rawHtml, input.ScriptVariableNames, input.ScriptVariableValues);
         string html = processedData.ProcessedHtml;
 
-        html = await ContentBlockHelper.UpdateContentBlocks(html, Client);
+        html = await ContentBlockHelper.UpsertContentBlocks(
+            html, 
+            Client, 
+            input.ContentSuffix, 
+            input.CategoryId, 
+            input.KeepOriginalFolders ?? false);
 
         var extractedViews = EmailSplitter.ExtractViews(html);
         string? subjectLine = string.IsNullOrEmpty(input.SubjectLine) ? processedData.ExtractedSubject : input.SubjectLine;
