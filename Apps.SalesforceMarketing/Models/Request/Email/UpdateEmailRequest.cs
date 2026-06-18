@@ -13,9 +13,11 @@ public class UpdateEmailRequest
     [Display("Overwrite subject line")]
     public string? SubjectLine { get; set; }
     
-    [Display("Content suffix")]
+    [Display("Content suffix", 
+        Description = "Text appended to the translated block names (e.g., 'ja-JP' or 'FR'). " +
+                      "This is used to name new blocks and locate them for future updates.")]
     public string? ContentSuffix { get; set; }
-
+    
     [Display("Category ID"), FileDataSource(typeof(CategoryDataHandler))]
     public string? CategoryId { get; set; }
 
