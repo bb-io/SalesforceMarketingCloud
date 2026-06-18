@@ -32,12 +32,12 @@ public static class ContentBlockHelper
         var sb = new StringBuilder(html);
         bool foundNewBlocks = true;
         int depth = 0;
-        const int MaxDepth = 5;
+        const int maxDepth = 5;
 
         var skippedBlockIds = new HashSet<string>(blockIdsToIgnore ?? []);
         var skippedFolderIds = new HashSet<string>(ignoreBlocksInFolderIds ?? []);
 
-        while (foundNewBlocks && depth < MaxDepth)
+        while (foundNewBlocks && depth < maxDepth)
         {
             foundNewBlocks = false;
             string currentHtml = sb.ToString();
