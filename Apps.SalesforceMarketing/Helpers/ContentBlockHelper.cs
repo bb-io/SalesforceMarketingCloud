@@ -114,7 +114,7 @@ public static class ContentBlockHelper
         string? newEmailName,
         string? emailCategoryId,
         bool keepOriginalFolders,
-        string? customNameEnding)
+        string? suffix)
     {
         var doc = new HtmlDocument();
         doc.OptionFixNestedTags = true;
@@ -142,7 +142,7 @@ public static class ContentBlockHelper
             string? targetCategoryId = emailCategoryId;
             string? originalName = null;
 
-            if (keepOriginalFolders || !string.IsNullOrWhiteSpace(customNameEnding))
+            if (keepOriginalFolders || !string.IsNullOrWhiteSpace(suffix))
             {
                 var originalAsset = await GetAssetById(client, originalId);
 
@@ -151,24 +151,16 @@ public static class ContentBlockHelper
                     originalName = originalAsset.Name;
 
                     if (keepOriginalFolders && originalAsset.Category != null)
-                        targetCategoryId = originalAsset.Category.Id.ToString();
+                        targetCategoryId = originalAsset.Category.Id;
                 }
             }
 
             string translatedContent = WebUtility.HtmlDecode(node.InnerHtml.Trim());
-            string newBlockName;
+            string? cleanName = !string.IsNullOrWhiteSpace(suffix) && !string.IsNullOrWhiteSpace(originalName)
+                ? $"{originalName} {suffix}".Trim()
+                : null;
 
-            if (!string.IsNullOrWhiteSpace(customNameEnding) && !string.IsNullOrWhiteSpace(originalName))
-                newBlockName = $"{originalName} {customNameEnding}".Trim();
-            else
-            {
-                string prefix = !string.IsNullOrEmpty(newEmailName) ? $"{newEmailName} - " : string.Empty;
-                newBlockName = $"({prefix}Block {originalId} - {DateTime.UtcNow.Ticks})";
-
-                if (!string.IsNullOrWhiteSpace(customNameEnding))
-                    newBlockName = $"{newBlockName} {customNameEnding}".Trim();
-            }
-
+            string newBlockName = cleanName ?? $"({newEmailName} - Block {originalId} - {DateTime.UtcNow.Ticks})";
             var newAsset = await CreateNewAsset(client, newBlockName, translatedContent, targetCategoryId);
 
             uploadedBlocksCache[originalId] = newAsset.Id;
@@ -241,18 +233,12 @@ public static class ContentBlockHelper
             if (keepOriginalFolders && sourceAsset?.Category != null)
                 categoryToUse = sourceAsset.Category.Id;
 
-            string targetName;
-            if (!string.IsNullOrWhiteSpace(contentSuffix) && !string.IsNullOrWhiteSpace(originalName))
-                targetName = $"{originalName} {contentSuffix}".Trim();
-            else
-            {
-                // Random string, later we're passing it to find the asset.
-                // We can't pass an empty string, so we need something to get passed to the GetAssetByName method
-                // so that it safely returns null
-                targetName = $"FallbackSearch_{sourceId}_{Guid.NewGuid()}"; 
-            }
+            string? cleanName = !string.IsNullOrWhiteSpace(contentSuffix)
+                ? $"{originalName} {contentSuffix}".Trim()
+                : null;
 
-            var existingTargetBlock = await GetAssetByName(client, targetName, null);
+            string searchName = cleanName ?? $"FallbackSearch_{sourceId}_{Guid.NewGuid()}";
+            var existingTargetBlock = await GetAssetByName(client, searchName, null);
 
             if (existingTargetBlock != null)
             {
@@ -261,15 +247,9 @@ public static class ContentBlockHelper
             }
             else
             {
-                string newBlockName;
-                if (!string.IsNullOrWhiteSpace(contentSuffix) && !string.IsNullOrWhiteSpace(originalName))
-                    newBlockName = $"{originalName} {contentSuffix} - {DateTime.UtcNow.Ticks}".Trim();
-                else
-                {
-                    newBlockName = $"(UpdateFallback - Block {sourceId} - {DateTime.UtcNow.Ticks})";
-                    if (!string.IsNullOrWhiteSpace(contentSuffix))
-                        newBlockName = $"{newBlockName} {contentSuffix}".Trim();
-                }
+                string newBlockName = 
+                    cleanName ?? 
+                    $"(UpdateFallback - Block {sourceId} - {DateTime.UtcNow.Ticks}) {contentSuffix}".Trim();
 
                 var newAsset = await CreateNewAsset(client, newBlockName, translatedContent, categoryToUse);
                 targetId = newAsset.Id;

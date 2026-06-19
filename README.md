@@ -48,9 +48,14 @@ To retrieve the `Member ID`, click your username in the top-right corner of the 
 
 - **Get email details**. Get details of a specific email.
 - **Download email**. Download email content.
+- **Find email**. Find email ID using its name.
 - **Update email**. Update existing email from file.
 - **Create new email**. Create new email from file.
-- **Find email**. Find email ID using its name.
+
+> **Note**: If you do not provide a content suffix in the 'Create new email' action, 
+new content blocks will have a timestamp appended to their names to prevent duplication errors. 
+Because of this dynamic naming, you will not be able to update these specific blocks later 
+using the 'Update email' action.
 
 ### Content blocks
 
