@@ -125,7 +125,7 @@ public class EmailActions(InvocationContext invocationContext, IFileManagementCl
 
         string baseEmailName = string.IsNullOrEmpty(input.EmailName) ? input.Content.Name : input.EmailName;
         string finalEmailName = string.IsNullOrWhiteSpace(input.ContentSuffix) 
-            ? $"{baseEmailName} - {DateTime.UtcNow.Ticks}" 
+            ? baseEmailName
             : $"{baseEmailName} {input.ContentSuffix}".Trim();
 
         html = await ContentBlockHelper.RestoreContentBlocks(
