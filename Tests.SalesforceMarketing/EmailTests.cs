@@ -50,7 +50,7 @@ public class EmailTests : TestBase
     public async Task DownloadEmail_IsSuccess()
     {
         // Arrange
-        var emailId = new EmailIdentifier { EmailId = "973984" };
+        var emailId = new EmailIdentifier { EmailId = "974782" };
         var request = new DownloadEmailRequest
         {
             DownloadHtmlEmailContent = true,
@@ -96,7 +96,7 @@ public class EmailTests : TestBase
         // Arrange
         var emailId = new OptionalEmailIdentifier
         {
-            EmailId = "973984"
+            //EmailId = "974774"
         };
         var input = new UpdateEmailRequest
         {

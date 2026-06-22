@@ -7,8 +7,8 @@ namespace Apps.SalesforceMarketing.Models.Request.Email;
 
 public class UploadEmailRequest
 {
-    [Display("Content")]
-    public FileReference Content { get; set; }
+    [Display("Content")] 
+    public FileReference Content { get; set; } = null!;
 
     [Display("Subject line")]
     public string? SubjectLine { get; set; }
@@ -19,7 +19,10 @@ public class UploadEmailRequest
     [Display("Email name", Description = "Overrides the default file name")]
     public string? EmailName { get; set; }
 
-    [Display("Content suffix", Description = "A custom ending for the name of the newly created email and its content blocks")]
+    [Display("Content suffix", 
+        Description = 
+            "[Recommended] A custom ending for the name of the newly created email and its content blocks. " +
+            "Please read the documentation note for more details (the 'Emails' actions section)")]
     public string? ContentSuffix { get; set; }
 
     [Display("Create content blocks in their original folder", Description = "False by default")]

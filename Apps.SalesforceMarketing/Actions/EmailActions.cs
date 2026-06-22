@@ -124,14 +124,14 @@ public class EmailActions(InvocationContext invocationContext, IFileManagementCl
         string html = processedData.ProcessedHtml;
 
         string baseEmailName = string.IsNullOrEmpty(input.EmailName) ? input.Content.Name : input.EmailName;
-        string finalEmailName = string.IsNullOrWhiteSpace(input.ContentSuffix)
-            ? baseEmailName
+        string finalEmailName = string.IsNullOrWhiteSpace(input.ContentSuffix) 
+            ? $"{baseEmailName} - {DateTime.UtcNow.Ticks}" 
             : $"{baseEmailName} {input.ContentSuffix}".Trim();
 
         html = await ContentBlockHelper.RestoreContentBlocks(
             html,
             Client,
-            input.EmailName,
+            baseEmailName,
             input.CategoryId,
             input.CreateContentBlocksInOriginalFolder ?? false,
             input.ContentSuffix);
