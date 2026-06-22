@@ -237,8 +237,9 @@ public static class ContentBlockHelper
                 ? $"{originalName} {contentSuffix}".Trim()
                 : null;
 
-            string searchName = cleanName ?? $"FallbackSearch_{sourceId}_{Guid.NewGuid()}";
-            var existingTargetBlock = await GetAssetByName(client, searchName, null);
+            AssetEntity? existingTargetBlock = null;
+            if (!string.IsNullOrWhiteSpace(cleanName))
+                existingTargetBlock = await GetAssetByName(client, cleanName, null);
 
             if (existingTargetBlock != null)
             {
@@ -247,9 +248,8 @@ public static class ContentBlockHelper
             }
             else
             {
-                string newBlockName = 
-                    cleanName ?? 
-                    $"(UpdateFallback - Block {sourceId} - {DateTime.UtcNow.Ticks}) {contentSuffix}".Trim();
+                string prefix = !string.IsNullOrEmpty(originalName) ? $"{originalName} - " : string.Empty;
+                string newBlockName = cleanName ?? $"({prefix}Block {sourceId} - {DateTime.UtcNow.Ticks})";
 
                 var newAsset = await CreateNewAsset(client, newBlockName, translatedContent, categoryToUse);
                 targetId = newAsset.Id;
