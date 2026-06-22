@@ -2,5 +2,5 @@
 
 public class ItemsWrapper<T>
 {
-    public List<T> Items { get; set; }
+    public List<T> Items { get; set; } = [];
 }

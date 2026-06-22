@@ -349,19 +349,23 @@ public static class ContentBlockHelper
         request.AddQueryParameter("$filter", $"name like '{safeName}'");
 
         var response = await client.ExecuteWithErrorHandling<ItemsWrapper<AssetEntity>>(request);
-        if (response.Items == null || response.Items.Count == 0)
+        if (response.Items.Count == 0)
             return null;
 
-        if (!string.IsNullOrEmpty(parentFolderName))
-        {
-            var match = response.Items.FirstOrDefault(a =>
-                a.Category != null &&
-                a.Category.Name.Equals(parentFolderName, StringComparison.OrdinalIgnoreCase)
-            );
+        var exactMatches = response.Items
+            .Where(a => a.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (exactMatches.Count == 0)
+            return null;
 
-            return match ?? response.Items.First();
-        }
+        if (string.IsNullOrEmpty(parentFolderName)) 
+            return exactMatches.First();
+        
+        var match = exactMatches.FirstOrDefault(a =>
+            a.Category != null &&
+            a.Category.Name.Equals(parentFolderName, StringComparison.OrdinalIgnoreCase)
+        );
 
-        return response.Items.First();
+        return match ?? exactMatches.First();
     }
 }
