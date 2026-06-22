@@ -341,9 +341,12 @@ public static class ContentBlockHelper
 
     private static async Task<AssetEntity?> GetAssetByName(SalesforceClient client, string name, string? parentFolderName)
     {
-        string safeName = name.Replace("'", "''");
-        var request = new RestRequest("asset/v1/content/assets", Method.Get);
-        request.AddQueryParameter("$filter", $"name eq '{safeName}'");
+        string safeName = name
+            .Replace("'", "''")
+            .Replace("(", "%")
+            .Replace(")", "%");
+        var request = new RestRequest("asset/v1/content/assets");
+        request.AddQueryParameter("$filter", $"name like '{safeName}'");
 
         var response = await client.ExecuteWithErrorHandling<ItemsWrapper<AssetEntity>>(request);
         if (response.Items == null || response.Items.Count == 0)
