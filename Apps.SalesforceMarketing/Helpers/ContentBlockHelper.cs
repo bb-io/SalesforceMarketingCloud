@@ -233,9 +233,13 @@ public static class ContentBlockHelper
             if (keepOriginalFolders && sourceAsset?.Category != null)
                 categoryToUse = sourceAsset.Category.Id;
 
-            string? cleanName = !string.IsNullOrWhiteSpace(contentSuffix)
-                ? $"{originalName} {contentSuffix}".Trim()
-                : null;
+            string? cleanName = null;
+            if (!string.IsNullOrWhiteSpace(contentSuffix) && !string.IsNullOrWhiteSpace(originalName))
+            {
+                cleanName = originalName.EndsWith(contentSuffix, StringComparison.OrdinalIgnoreCase) 
+                    ? originalName.Trim() 
+                    : $"{originalName} {contentSuffix}".Trim();
+            }
 
             AssetEntity? existingTargetBlock = null;
             if (!string.IsNullOrWhiteSpace(cleanName))
