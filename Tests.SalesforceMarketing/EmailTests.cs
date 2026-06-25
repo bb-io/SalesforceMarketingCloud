@@ -50,13 +50,10 @@ public class EmailTests : TestBase
     public async Task DownloadEmail_IsSuccess()
     {
         // Arrange
-        var emailId = new EmailIdentifier { EmailId = "974782" };
+        var emailId = new EmailIdentifier { EmailId = "975276" };
         var request = new DownloadEmailRequest
         {
-            DownloadHtmlEmailContent = true,
-            DownloadPlaintextEmailContent = false,
-            ExtractAllScriptVariables = true,
-            ContentBlockIdsToIgnore = ["951944"]
+            
         };
 
         // Act
@@ -73,13 +70,10 @@ public class EmailTests : TestBase
         // Arrange
         var request = new UploadEmailRequest
         {
-            Content = new FileReference { Name = "test.html" },
-            EmailName = "test email uat2",
+            Content = new FileReference { Name = "test1.html" },
             CategoryId = "1326002",
-            //CreateContentBlocksInOriginalFolder = true,
-            ContentSuffix = "ja-JP"
-            //ScriptVariableNames =   [   "chkey",           "@jobtype",         "test"                  ],
-            //ScriptVariableValues =  [   "updatedChKey",    "updatedJobType",   "this will not update"  ]
+            CreateContentBlocksInOriginalFolder = true,
+            ContentSuffix = "(TEST2)"
         };
 
         // Act
@@ -96,13 +90,13 @@ public class EmailTests : TestBase
         // Arrange
         var emailId = new OptionalEmailIdentifier
         {
-            //EmailId = "974774"
+            EmailId = "976134"
         };
         var input = new UpdateEmailRequest
         {
-            Content = new FileReference { Name = "test.html" },
+            Content = new FileReference { Name = "test1.html" },
             KeepOriginalFolders = true,
-            ContentSuffix = "ja-JP"
+            ContentSuffix = "(TEST2)"
         };
 
         // Act
