@@ -185,7 +185,8 @@ public class EmailActions(InvocationContext invocationContext, IFileManagementCl
             Client, 
             input.ContentSuffix, 
             input.CategoryId, 
-            input.KeepOriginalFolders ?? false);
+            input.KeepOriginalFolders ?? false,
+            emailId);
 
         var extractedViews = EmailSplitter.ExtractViews(html);
         string? subjectLine = string.IsNullOrEmpty(input.SubjectLine) ? processedData.ExtractedSubject : input.SubjectLine;

@@ -196,7 +196,8 @@ public static class ContentBlockHelper
         SalesforceClient client,
         string? contentSuffix,
         string? targetCategoryId,
-        bool keepOriginalFolders)
+        bool keepOriginalFolders,
+        string emailId)
     {
         var doc = new HtmlDocument
         {
@@ -217,6 +218,12 @@ public static class ContentBlockHelper
         foreach (var node in sortedNodes)
         {
             string sourceId = node.Id;
+            if (sourceId == emailId)
+            {
+                throw new PluginMisconfigurationException(
+                    $"The email body references its own ID ({emailId}) as a content block. " +
+                    $"This email is corrupted and needs to be repaired before it can be updated.");
+            }
 
             if (processedBlocksCache.TryGetValue(sourceId, out string? targetId))
             {
@@ -236,14 +243,14 @@ public static class ContentBlockHelper
             string? cleanName = null;
             if (!string.IsNullOrWhiteSpace(contentSuffix) && !string.IsNullOrWhiteSpace(originalName))
             {
-                cleanName = originalName.EndsWith(contentSuffix, StringComparison.OrdinalIgnoreCase) 
+                cleanName = originalName.EndsWith($" {contentSuffix}", StringComparison.OrdinalIgnoreCase)
                     ? originalName.Trim() 
                     : $"{originalName} {contentSuffix}".Trim();
             }
 
             AssetEntity? existingTargetBlock = null;
             if (!string.IsNullOrWhiteSpace(cleanName))
-                existingTargetBlock = await GetAssetByName(client, cleanName, null);
+                existingTargetBlock = await GetAssetByName(client, cleanName, null, categoryToUse);
 
             if (existingTargetBlock != null)
             {
@@ -257,6 +264,13 @@ public static class ContentBlockHelper
 
                 var newAsset = await CreateNewAsset(client, newBlockName, translatedContent, categoryToUse);
                 targetId = newAsset.Id;
+            }
+
+            if (targetId == emailId)
+            {
+                throw new PluginMisconfigurationException(
+                    $"A content block resolved to the email's own ID ({emailId}). " +
+                    $"Refusing to make the email reference itself.");
             }
 
             processedBlocksCache[sourceId] = targetId;
@@ -332,40 +346,44 @@ public static class ContentBlockHelper
 
     private static async Task<AssetEntity?> GetAssetById(SalesforceClient client, string id)
     {
-        var request = new RestRequest("asset/v1/content/assets", Method.Get);
-        request.AddQueryParameter("$filter", $"id eq {id}");
+        var query = new AssetFilterBuilder()
+            .WhereEquals("id", id)
+            .WhereIn("assetType.id", AssetTypeIds.ContentBlockTypes)
+            .BuildPayload();
+
+        var request = new RestRequest("asset/v1/content/assets/query", Method.Post)
+            .AddStringBody(query.ToString(), DataFormat.Json);
 
         var response = await client.ExecuteWithErrorHandling<ItemsWrapper<AssetEntity>>(request);
         return response.Items.FirstOrDefault();
     }
 
-    private static async Task<AssetEntity?> GetAssetByName(SalesforceClient client, string name, string? parentFolderName)
+    private static async Task<AssetEntity?> GetAssetByName(
+        SalesforceClient client,
+        string name,
+        string? parentFolderName,
+        string? categoryId = null)
     {
-        string safeName = name
-            .Replace("'", "''")
-            .Replace("(", "%")
-            .Replace(")", "%");
-        var request = new RestRequest("asset/v1/content/assets");
-        request.AddQueryParameter("$filter", $"name like '{safeName}'");
+        var query = new AssetFilterBuilder()
+            .WhereEquals("name", name)
+            .WhereIn("assetType.id", AssetTypeIds.ContentBlockTypes)
+            .WhereEquals("category.id", categoryId)
+            .BuildPayload();
+
+        var request = new RestRequest("asset/v1/content/assets/query", Method.Post)
+            .AddStringBody(query.ToString(), DataFormat.Json);
 
         var response = await client.ExecuteWithErrorHandling<ItemsWrapper<AssetEntity>>(request);
         if (response.Items.Count == 0)
             return null;
-
-        var exactMatches = response.Items
-            .Where(a => a.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        if (exactMatches.Count == 0)
-            return null;
-
-        if (string.IsNullOrEmpty(parentFolderName)) 
-            return exactMatches.First();
         
-        var match = exactMatches.FirstOrDefault(a =>
-            a.Category != null &&
-            a.Category.Name.Equals(parentFolderName, StringComparison.OrdinalIgnoreCase)
-        );
+        if (!string.IsNullOrEmpty(categoryId) || string.IsNullOrEmpty(parentFolderName))
+            return response.Items.First();
 
-        return match ?? exactMatches.First();
+        var exactMatches = response.Items.FirstOrDefault(a =>
+            a.Category != null &&
+            a.Category.Name.Equals(parentFolderName, StringComparison.OrdinalIgnoreCase));
+        
+        return exactMatches ?? response.Items.First();
     }
 }
